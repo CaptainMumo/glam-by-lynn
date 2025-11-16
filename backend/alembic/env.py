@@ -14,6 +14,32 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.core.database import Base
 from app.core.config import settings
 
+# Import all models so Alembic can detect them for autogenerate
+from app.models import (
+    User,
+    Brand,
+    Category,
+    Product,
+    ProductImage,
+    ProductVideo,
+    ProductVariant,
+    ServicePackage,
+    TransportLocation,
+    CalendarAvailability,
+    Booking,
+    PromoCode,
+    Order,
+    OrderItem,
+    Cart,
+    CartItem,
+    Wishlist,
+    Review,
+    GalleryPost,
+    Testimonial,
+    VisionRegistration,
+    AdminActivityLog,
+)
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -28,8 +54,6 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# Import all models here so Alembic can detect them
-# from app.models import user, product, etc.
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

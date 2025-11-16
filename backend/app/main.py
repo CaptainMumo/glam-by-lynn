@@ -8,8 +8,9 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.database import check_db_connection
 
-# Import routers (will be added as we build them)
-# from app.api.routes import auth, products, services, bookings, orders
+# Import routers
+from app.routers import auth
+# from app.api.routes import products, services, bookings, orders
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -72,8 +73,8 @@ async def database_health_check():
     )
 
 
-# Include routers (will be uncommented as we build them)
-# app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+# Include routers
+app.include_router(auth.router, prefix="/api")
 # app.include_router(products.router, prefix="/api/products", tags=["Products"])
 # app.include_router(services.router, prefix="/api/services", tags=["Services"])
 # app.include_router(bookings.router, prefix="/api/bookings", tags=["Bookings"])

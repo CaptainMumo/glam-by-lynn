@@ -75,6 +75,8 @@ Once the server is running, visit:
 
 ## Testing
 
+### Quick Start
+
 **Run all tests:**
 ```bash
 pytest
@@ -82,22 +84,37 @@ pytest
 
 **Run with coverage:**
 ```bash
-pytest --cov=app tests/
+pytest --cov=app --cov-report=html
 ```
 
-**Run specific test file:**
+**Run specific markers:**
 ```bash
-pytest app/tests/test_main.py
+pytest -m unit          # Unit tests only
+pytest -m integration   # Integration tests only
+pytest -m fixture       # Fixture tests only
 ```
 
-**Run unit tests only:**
-```bash
-pytest -m unit
-```
+### Test Fixtures
 
-**Run integration tests only:**
-```bash
-pytest -m integration
+Comprehensive test fixtures are available for all database models:
+- User fixtures (regular users, admin users, guest users)
+- Product fixtures (brands, categories, products, variants)
+- Service fixtures (packages, locations, availability)
+- Booking fixtures (with deposit calculation)
+- Order fixtures (orders, carts, promo codes, wishlists)
+- Content fixtures (reviews, testimonials, gallery posts)
+
+See [app/tests/README.md](app/tests/README.md) for complete testing documentation.
+
+### PostgreSQL Requirement for Tests
+
+**IMPORTANT**: Tests require PostgreSQL due to schema features (ARRAY, JSONB, UUID).
+SQLite is not supported for testing.
+
+Configure test database:
+```python
+# In app/tests/conftest.py
+SQLALCHEMY_TEST_DATABASE_URL = "postgresql://user:password@localhost:5432/glam_by_lynn_test"
 ```
 
 ## Project Structure

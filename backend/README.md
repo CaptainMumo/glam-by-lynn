@@ -128,6 +128,8 @@ backend/
 
 ## Database Migrations
 
+Alembic is configured to automatically use the database URL from your `.env` file.
+
 **Create a new migration:**
 ```bash
 alembic revision --autogenerate -m "Description of changes"
@@ -147,6 +149,13 @@ alembic downgrade -1
 ```bash
 alembic history
 ```
+
+**Check current version:**
+```bash
+alembic current
+```
+
+For a comprehensive migration guide, see [../docs/MIGRATIONS.md](../docs/MIGRATIONS.md)
 
 ## Code Quality
 

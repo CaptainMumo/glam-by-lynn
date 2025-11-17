@@ -18,11 +18,12 @@ from app.schemas.auth import (
     RefreshTokenRequest,
     UserResponse
 )
+from app.services import user_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/google", response_model=UserResponse, status_code=status.HTTP_200_OK)
+@router.post("/google-login", response_model=UserResponse, status_code=status.HTTP_200_OK)
 async def google_auth(
     auth_data: GoogleAuthRequest,
     db: Session = Depends(get_db)
@@ -30,45 +31,26 @@ async def google_auth(
     """
     Google OAuth authentication endpoint
     Creates or retrieves user based on Google account info
+    Also links any guest orders/bookings if user previously placed orders as guest
 
     Args:
         auth_data: Google authentication data (email, googleId, name, image)
         db: Database session
 
     Returns:
-        User information with tokens
+        User information (guest data automatically linked if applicable)
 
     Raises:
         HTTPException: If authentication fails
     """
-    # Check if user exists by Google ID
-    user = db.query(User).filter(User.google_id == auth_data.google_id).first()
-
-    if not user:
-        # Check if user exists by email
-        user = db.query(User).filter(User.email == auth_data.email).first()
-
-        if user:
-            # Update existing user with Google ID
-            user.google_id = auth_data.google_id
-            if auth_data.name:
-                user.name = auth_data.name
-            if auth_data.image:
-                user.image = auth_data.image
-        else:
-            # Create new user
-            user = User(
-                email=auth_data.email,
-                google_id=auth_data.google_id,
-                name=auth_data.name,
-                image=auth_data.image,
-                is_active=True,
-                is_admin=False  # Default to non-admin
-            )
-            db.add(user)
-
-        db.commit()
-        db.refresh(user)
+    # Use user service to handle OAuth login with guest data linking
+    user, created, link_stats = user_service.get_or_create_user_from_oauth(
+        db=db,
+        email=auth_data.email,
+        google_id=auth_data.google_id,
+        name=auth_data.name,
+        image=auth_data.image
+    )
 
     # Ensure user is active
     if not user.is_active:
@@ -244,3 +226,76 @@ async def create_tokens_for_user(
         access_token=access_token,
         refresh_token=refresh_token
     )
+
+
+@router.post("/guest", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_guest_user(
+    email: str,
+    name: str = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Create a guest user account (without Google OAuth)
+    Used for checkout and booking without registration
+
+    Args:
+        email: Guest email address
+        name: Optional guest name
+        db: Database session
+
+    Returns:
+        Created guest user
+
+    Raises:
+        HTTPException: If user with email already exists
+    """
+    try:
+        guest_user = user_service.create_guest_user(
+            db=db,
+            email=email,
+            name=name
+        )
+        return guest_user
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/link-guest-data")
+async def link_guest_data(
+    guest_email: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Manually link guest orders and bookings to authenticated user account
+    Useful for cases where email doesn't match exactly
+
+    Args:
+        guest_email: Email address used for guest orders/bookings
+        current_user: Current authenticated user
+        db: Database session
+
+    Returns:
+        Link statistics
+
+    Raises:
+        HTTPException: If linking fails
+    """
+    try:
+        link_stats = user_service.link_guest_data_to_user(
+            db=db,
+            user_id=current_user.id,
+            guest_email=guest_email
+        )
+        return {
+            "message": "Guest data successfully linked",
+            **link_stats
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )

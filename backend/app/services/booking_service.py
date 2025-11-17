@@ -368,3 +368,62 @@ def create_booking(
     # send_booking_confirmation_email(booking)
 
     return booking
+
+
+def get_user_bookings(
+    db: Session,
+    user_id: UUID,
+    skip: int = 0,
+    limit: int = 100,
+    status: Optional[str] = None
+) -> tuple[list[Booking], int]:
+    """
+    Get list of bookings for a specific user with pagination and filters
+
+    Args:
+        db: Database session
+        user_id: User ID to get bookings for
+        skip: Number of records to skip
+        limit: Maximum number of records to return
+        status: Filter by status (optional)
+
+    Returns:
+        Tuple of (bookings list, total count)
+    """
+    query = db.query(Booking).filter(Booking.user_id == user_id)
+
+    # Apply status filter
+    if status:
+        query = query.filter(Booking.status == status.lower())
+
+    # Get total count
+    total = query.count()
+
+    # Apply sorting and pagination
+    bookings = query.order_by(
+        Booking.booking_date.desc(),
+        Booking.booking_time.desc()
+    ).offset(skip).limit(limit).all()
+
+    return bookings, total
+
+
+def get_booking_by_id(db: Session, booking_id: UUID, user_id: Optional[UUID] = None) -> Optional[Booking]:
+    """
+    Get a specific booking by ID
+
+    Args:
+        db: Database session
+        booking_id: Booking ID
+        user_id: Optional user ID to verify ownership
+
+    Returns:
+        Booking object or None if not found or user doesn't have access
+    """
+    query = db.query(Booking).filter(Booking.id == booking_id)
+
+    # If user_id provided, ensure booking belongs to user
+    if user_id:
+        query = query.filter(Booking.user_id == user_id)
+
+    return query.first()

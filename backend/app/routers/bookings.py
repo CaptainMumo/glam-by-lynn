@@ -9,12 +9,112 @@ from typing import Optional
 from uuid import UUID
 
 from app.core.database import get_db
-from app.core.dependencies import get_optional_current_user
+from app.core.dependencies import get_optional_current_user, get_current_user
 from app.models.user import User
-from app.schemas.booking import AvailabilityResponse, BookingCreate, BookingResponse
+from app.schemas.booking import AvailabilityResponse, BookingCreate, BookingResponse, BookingListResponse
 from app.services import booking_service
+import math
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
+
+
+@router.get("", response_model=BookingListResponse)
+async def list_user_bookings(
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    status: Optional[str] = Query(None, description="Filter by status (pending, confirmed, deposit_paid, completed, cancelled)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get list of current user's bookings (authenticated endpoint)
+
+    **Authentication required**
+
+    Returns paginated list of bookings for the authenticated user.
+
+    Query parameters:
+    - **page**: Page number (default: 1)
+    - **page_size**: Items per page (default: 20, max: 100)
+    - **status**: Filter by booking status (optional)
+      - `pending`: Awaiting confirmation
+      - `confirmed`: Confirmed booking
+      - `deposit_paid`: Deposit received
+      - `completed`: Service completed
+      - `cancelled`: Booking cancelled
+
+    Sorting:
+    - Bookings are sorted by date (newest first)
+    - Then by time (latest first)
+
+    Returns:
+    - List of user's bookings with full details
+    - Pagination metadata
+    """
+    skip = (page - 1) * page_size
+
+    # Get user's bookings
+    bookings, total = booking_service.get_user_bookings(
+        db=db,
+        user_id=current_user.id,
+        skip=skip,
+        limit=page_size,
+        status=status
+    )
+
+    total_pages = math.ceil(total / page_size) if total > 0 else 1
+
+    return BookingListResponse(
+        items=bookings,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages
+    )
+
+
+@router.get("/{booking_id}", response_model=BookingResponse)
+async def get_booking_details(
+    booking_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get specific booking details (authenticated endpoint)
+
+    **Authentication required**
+
+    Returns detailed information for a specific booking.
+    Users can only access their own bookings.
+
+    Args:
+    - **booking_id**: UUID of the booking
+
+    Returns:
+    - Full booking details including:
+      - Booking number and status
+      - Date and time
+      - Package and location information
+      - Attendee counts
+      - Pricing breakdown
+      - Special requests
+
+    Raises:
+    - 404: Booking not found or user doesn't have access
+    """
+    booking = booking_service.get_booking_by_id(
+        db=db,
+        booking_id=booking_id,
+        user_id=current_user.id
+    )
+
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Booking with ID {booking_id} not found"
+        )
+
+    return booking
 
 
 @router.get("/availability", response_model=AvailabilityResponse)

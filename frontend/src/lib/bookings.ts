@@ -191,3 +191,95 @@ export function formatTime(timeStr: string): string {
   const displayHour = hour % 12 || 12;
   return `${displayHour}:${minutes} ${ampm}`;
 }
+
+/**
+ * Get user's booking list with pagination
+ */
+export async function getUserBookings(
+  token: string,
+  page: number = 1,
+  pageSize: number = 20,
+  status?: string
+): Promise<{ items: Booking[]; total: number; page: number; totalPages: number }> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    page_size: pageSize.toString(),
+  });
+
+  if (status) {
+    params.set("status", status);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.BOOKINGS.LIST}?${params}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to fetch bookings: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return {
+    items: data.items,
+    total: data.total,
+    page: data.page,
+    totalPages: data.total_pages,
+  };
+}
+
+/**
+ * Cancel a booking
+ */
+export async function cancelBooking(bookingId: string, token: string): Promise<Booking> {
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.BOOKINGS.CANCEL(bookingId)}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to cancel booking: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Get status badge variant based on booking status
+ */
+export function getStatusBadgeVariant(
+  status: string
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "confirmed":
+    case "deposit_paid":
+      return "default";
+    case "pending":
+      return "secondary";
+    case "cancelled":
+      return "destructive";
+    case "completed":
+      return "outline";
+    default:
+      return "secondary";
+  }
+}
+
+/**
+ * Format status for display
+ */
+export function formatStatus(status: string): string {
+  return status
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}

@@ -11,9 +11,11 @@ import math
 from app.core.database import get_db
 from app.schemas.service_package import (
     ServicePackageResponse,
-    ServicePackageListResponse
+    ServicePackageListResponse,
+    TransportLocationResponse
 )
 from app.services import service_package_service
+from app.models.service import TransportLocation
 
 router = APIRouter(prefix="/services", tags=["services"])
 
@@ -97,3 +99,25 @@ async def get_package_details(
         )
 
     return package
+
+
+@router.get("/locations", response_model=list[TransportLocationResponse])
+async def list_active_locations(
+    db: Session = Depends(get_db)
+):
+    """
+    Get list of active transport locations (public endpoint)
+
+    **Publicly accessible - No authentication required**
+
+    Returns all active transport locations for booking.
+
+    Returns:
+    - List of transport locations with names and costs
+    - Only active locations are returned
+    """
+    locations = db.query(TransportLocation).filter(
+        TransportLocation.is_active == True
+    ).order_by(TransportLocation.location_name).all()
+
+    return locations

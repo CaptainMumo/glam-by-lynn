@@ -10,8 +10,8 @@ from app.core.database import check_db_connection
 
 # Import routers
 from app.routers import auth
-from app.api.routes import brands, categories
-# from app.api.routes import products, services, bookings, orders
+from app.api.routes import brands, categories, products
+# from app.api.routes import services, bookings, orders
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -78,7 +78,7 @@ async def database_health_check():
 app.include_router(auth.router, prefix="/api")
 app.include_router(brands.router, prefix="/api")
 app.include_router(categories.router, prefix="/api")
-# app.include_router(products.router, prefix="/api/products", tags=["Products"])
+app.include_router(products.router, prefix="/api")
 # app.include_router(services.router, prefix="/api/services", tags=["Services"])
 # app.include_router(bookings.router, prefix="/api/bookings", tags=["Bookings"])
 # app.include_router(orders.router, prefix="/api/orders", tags=["Orders"])

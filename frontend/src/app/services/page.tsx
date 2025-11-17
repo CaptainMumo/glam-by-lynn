@@ -1,73 +1,54 @@
 /**
  * Services Page
- * Display makeup services with booking options
+ * Display makeup service packages with booking options
  */
 
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-const services = [
-  {
-    id: "bridal",
-    title: "Bridal Makeup",
-    description: "Make your special day unforgettable with professional bridal makeup artistry",
-    features: [
-      "Personalized consultation",
-      "Trial session included",
-      "Long-lasting formula",
-      "Touch-up kit provided",
-      "On-location service available"
-    ],
-    price: "Starting at $250",
-    popular: true
-  },
-  {
-    id: "events",
-    title: "Special Events",
-    description: "Look stunning for any occasion - from galas to photoshoots",
-    features: [
-      "Custom makeup design",
-      "Professional application",
-      "Suitable for all events",
-      "Photo-ready finish",
-      "Quick turnaround"
-    ],
-    price: "Starting at $150"
-  },
-  {
-    id: "classes",
-    title: "Makeup Classes",
-    description: "Learn professional makeup techniques in personalized or group sessions",
-    features: [
-      "Beginner to advanced levels",
-      "Hands-on training",
-      "Product recommendations",
-      "Take-home materials",
-      "Certificate of completion"
-    ],
-    price: "Starting at $200"
-  },
-  {
-    id: "consultations",
-    title: "Beauty Consultations",
-    description: "Get expert advice on makeup, skincare, and beauty routines",
-    features: [
-      "Personalized assessment",
-      "Product recommendations",
-      "Technique demonstrations",
-      "Skincare routine planning",
-      "Follow-up support"
-    ],
-    price: "Starting at $75"
-  }
-];
+import { ServicePackage } from "@/types";
+import {
+  getActiveServicePackages,
+  getPackageTypeName,
+  getPricingDescription,
+  getPackageFeatures,
+} from "@/lib/services";
+import { Loader2 } from "lucide-react";
 
 export default function ServicesPage() {
+  const router = useRouter();
+  const [packages, setPackages] = useState<ServicePackage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchPackages() {
+      try {
+        setLoading(true);
+        const data = await getActiveServicePackages();
+        setPackages(data);
+      } catch (err) {
+        console.error("Failed to fetch service packages:", err);
+        setError("Failed to load service packages. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPackages();
+  }, []);
+
+  const handleBookNow = (packageId: string) => {
+    // TODO: Navigate to booking form with package pre-selected
+    router.push(`/bookings/new?packageId=${packageId}`);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -91,74 +72,103 @@ export default function ServicesPage() {
 
       {/* Services Grid */}
       <main className="container mx-auto px-4 py-16">
-        <div className="grid gap-8 md:grid-cols-2">
-          {services.map((service) => (
-            <Card
-              key={service.id}
-              id={service.id}
-              className={service.popular ? "border-secondary shadow-lg" : ""}
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-2xl">{service.title}</CardTitle>
-                    <CardDescription className="mt-2">
-                      {service.description}
-                    </CardDescription>
-                  </div>
-                  {service.popular && (
-                    <Badge variant="secondary">Popular</Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Features */}
-                <div>
-                  <h4 className="mb-3 font-semibold">What's Included:</h4>
-                  <ul className="space-y-2">
-                    {service.features.map((feature, index) => (
-                      <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
-                        <span className="mt-1 text-secondary">✓</span>
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+          </div>
+        ) : error ? (
+          <div className="mx-auto max-w-md rounded-lg border border-destructive bg-destructive/10 p-6 text-center">
+            <p className="text-destructive">{error}</p>
+          </div>
+        ) : packages.length === 0 ? (
+          <div className="mx-auto max-w-md rounded-lg border border-border bg-muted/50 p-6 text-center">
+            <p className="text-muted-foreground">
+              No service packages available at the moment. Please check back later.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-8 md:grid-cols-2">
+              {packages.map((pkg) => {
+                const features = getPackageFeatures(pkg);
+                const pricingDescription = getPricingDescription(pkg);
+                const isPopular = pkg.packageType === "bridal_large" || pkg.packageType === "bride_only";
 
-                {/* Price and CTA */}
-                <div className="flex items-center justify-between border-t border-border pt-6">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Price</p>
-                    <p className="text-xl font-bold">{service.price}</p>
-                  </div>
-                  <Button disabled>
-                    Book Now (Coming Soon)
+                return (
+                  <Card
+                    key={pkg.id}
+                    id={pkg.id}
+                    className={isPopular ? "border-secondary shadow-lg" : ""}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-2xl">{pkg.name}</CardTitle>
+                          {pkg.description && (
+                            <CardDescription className="mt-2">
+                              {pkg.description}
+                            </CardDescription>
+                          )}
+                        </div>
+                        {isPopular && (
+                          <Badge variant="secondary">Popular</Badge>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Features */}
+                      <div>
+                        <h4 className="mb-3 font-semibold">What's Included:</h4>
+                        <ul className="space-y-2">
+                          {features.map((feature, index) => (
+                            <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
+                              <span className="mt-1 text-secondary">✓</span>
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Price and CTA */}
+                      <div className="flex flex-col gap-4 border-t border-border pt-6">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Pricing</p>
+                          <p className="text-sm font-semibold">{pricingDescription}</p>
+                        </div>
+                        <Button
+                          onClick={() => handleBookNow(pkg.id)}
+                          className="w-full"
+                        >
+                          Book Now
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Call to Action */}
+            <div className="mt-16">
+              <Card className="border-secondary/50 bg-muted/50">
+                <CardHeader className="text-center">
+                  <CardTitle className="text-2xl">Ready to Book?</CardTitle>
+                  <CardDescription>
+                    Choose a service package above to get started or contact us for personalized recommendations
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center gap-4">
+                  <Button variant="outline" onClick={() => router.push("/contact")}>
+                    Contact Us
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Call to Action */}
-        <div className="mt-16">
-          <Card className="border-secondary/50 bg-muted/50">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Ready to Book?</CardTitle>
-              <CardDescription>
-                Contact us to schedule your appointment or ask any questions
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center gap-4">
-              <Button variant="outline" disabled>
-                Contact Us (Coming Soon)
-              </Button>
-              <Button disabled>
-                View Availability (Coming Soon)
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+                  <Button onClick={() => router.push("/bookings/availability")}>
+                    Check Availability
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
       </main>
 
       <Footer />

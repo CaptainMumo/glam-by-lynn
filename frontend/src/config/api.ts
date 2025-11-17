@@ -31,16 +31,16 @@ export const API_ENDPOINTS = {
   },
   // Services
   SERVICES: {
-    PACKAGES: "/services/packages",
-    LOCATIONS: "/services/locations",
-    AVAILABILITY: "/services/availability",
+    LIST: "/api/services",
+    DETAIL: (id: string) => `/api/services/${id}`,
   },
   // Bookings
   BOOKINGS: {
-    CREATE: "/bookings",
-    LIST: "/bookings",
-    DETAIL: (id: string) => `/bookings/${id}`,
-    MY_BOOKINGS: "/bookings/me",
+    CREATE: "/api/bookings",
+    LIST: "/api/bookings",
+    DETAIL: (id: string) => `/api/bookings/${id}`,
+    AVAILABILITY: "/api/bookings/availability",
+    CANCEL: (id: string) => `/api/bookings/${id}/cancel`,
   },
   // Orders
   ORDERS: {

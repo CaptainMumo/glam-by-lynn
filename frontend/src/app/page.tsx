@@ -1,9 +1,11 @@
 "use client";
 
 import { useAuth } from "@/hooks/useAuth";
-import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import Link from "next/link";
 
 export default function Home() {
@@ -21,40 +23,36 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <h1 className="text-2xl font-bold">Glam by Lynn</h1>
-          <div className="flex items-center gap-4">
-            {authenticated ? (
-              <>
-                <span className="text-sm text-muted-foreground">
-                  {user?.email}
-                  {isAdmin && <span className="ml-2 rounded bg-secondary px-2 py-1 text-xs">Admin</span>}
-                </span>
-                <Button onClick={() => signOut()} variant="outline">
-                  Sign Out
-                </Button>
-              </>
-            ) : (
-              <Button asChild>
-                <Link href="/auth/signin">Sign In</Link>
+      <Header />
+
+      {/* Hero Section */}
+      <section className="relative overflow-hidden border-b border-border bg-gradient-to-b from-background to-muted/20 px-4 py-20 md:py-32">
+        <div className="container mx-auto">
+          <div className="mx-auto max-w-4xl text-center">
+            <Badge variant="secondary" className="mb-4">
+              Premium Beauty Services
+            </Badge>
+            <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">
+              Your Beauty, <span className="text-secondary">Elevated</span>
+            </h1>
+            <p className="mb-8 text-lg text-muted-foreground md:text-xl">
+              Professional makeup artistry and curated beauty products for every special moment
+            </p>
+            <div className="flex flex-col justify-center gap-4 sm:flex-row">
+              <Button asChild size="lg">
+                <Link href="/services">Book a Service</Link>
               </Button>
-            )}
+              <Button asChild variant="outline" size="lg">
+                <Link href="/products">Shop Products</Link>
+              </Button>
+            </div>
           </div>
         </div>
-      </header>
+      </section>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-16">
-        <div className="mx-auto max-w-4xl">
-          {/* Welcome Section */}
-          <div className="mb-12 text-center">
-            <h2 className="mb-4 text-4xl font-bold">Welcome to Glam by Lynn</h2>
-            <p className="text-lg text-muted-foreground">
-              Professional makeup services and beauty product e-commerce
-            </p>
-          </div>
+        <div className="mx-auto max-w-6xl">
 
           {/* User Status Card */}
           <Card className="mb-8">
@@ -166,6 +164,8 @@ export default function Home() {
           </Card>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

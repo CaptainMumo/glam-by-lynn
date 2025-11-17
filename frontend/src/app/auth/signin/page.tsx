@@ -16,9 +16,12 @@ export default function SignInPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Welcome to Glam by Lynn</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            Welcome to <span className="text-foreground">Glam by </span>
+            <span className="text-secondary">Lynn</span>
+          </CardTitle>
           <CardDescription>Sign in to continue to your account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

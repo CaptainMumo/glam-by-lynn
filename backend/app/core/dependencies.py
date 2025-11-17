@@ -14,6 +14,7 @@ from app.models.user import User
 
 # Security scheme for Bearer token
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
@@ -75,6 +76,50 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user"
         )
+
+    return user
+
+
+async def get_optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """
+    Dependency to optionally get the current authenticated user from JWT token
+
+    Returns None if no token is provided or token is invalid.
+    Does not raise HTTPException for missing/invalid tokens.
+
+    Args:
+        credentials: Optional HTTP Bearer token credentials
+        db: Database session
+
+    Returns:
+        Current user object or None
+    """
+    if not credentials:
+        return None
+
+    token = credentials.credentials
+
+    # Verify token
+    payload = verify_token(token, token_type="access")
+    if not payload:
+        return None
+
+    # Get user ID from token
+    user_id: Optional[str] = payload.get("sub")
+    if not user_id:
+        return None
+
+    # Get user from database
+    try:
+        user = db.query(User).filter(User.id == UUID(user_id)).first()
+    except ValueError:
+        return None
+
+    if not user or not user.is_active:
+        return None
 
     return user
 

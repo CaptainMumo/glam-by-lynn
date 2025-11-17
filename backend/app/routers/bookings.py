@@ -1,14 +1,17 @@
 """
 Public Booking API routes
-Publicly accessible endpoints for booking availability
+Publicly accessible endpoints for booking availability and creation
 """
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import date as date_type, timedelta
 from typing import Optional
+from uuid import UUID
 
 from app.core.database import get_db
-from app.schemas.booking import AvailabilityResponse
+from app.core.dependencies import get_optional_current_user
+from app.models.user import User
+from app.schemas.booking import AvailabilityResponse, BookingCreate, BookingResponse
 from app.services import booking_service
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
@@ -63,3 +66,63 @@ async def get_booking_availability(
     )
 
     return availability
+
+
+@router.post("", response_model=BookingResponse, status_code=status.HTTP_201_CREATED)
+async def create_booking(
+    booking_data: BookingCreate,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user)
+):
+    """
+    Create a new booking (public endpoint with optional authentication)
+
+    **Publicly accessible - Authentication optional**
+
+    Creates a booking for a makeup service. Can be used by both authenticated users
+    and guests. Guest bookings require email, name, and phone number.
+
+    Validation:
+    - Package must exist and be active
+    - Location must exist and be active
+    - Number of maids must be within package limits (min/max)
+    - Selected time slot must be available
+    - Guest bookings require contact information
+
+    Pricing:
+    - Automatically calculated based on package rates and attendee counts
+    - Transport cost added from location
+    - 50% deposit calculated
+
+    Booking Number:
+    - Automatically generated in format: BK{YYYYMMDD}{####}
+    - Example: BK202511170001
+
+    Returns:
+    - Created booking with status "pending"
+    - Booking number for reference
+    - Complete pricing breakdown
+    - Deposit amount (50% of total)
+
+    Raises:
+    - 400: Validation error (invalid package, location, rules, or unavailable slot)
+    - 401: Missing guest information for non-authenticated booking
+    """
+    try:
+        # Get user ID if authenticated
+        user_id = current_user.id if current_user else None
+
+        # Create booking
+        booking = booking_service.create_booking(
+            db=db,
+            booking_data=booking_data,
+            user_id=user_id
+        )
+
+        return booking
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )

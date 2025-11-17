@@ -136,8 +136,58 @@ export function calculateBookingPrice(
 }
 
 /**
+ * Get a specific booking by ID
+ */
+export async function getBookingById(bookingId: string, token?: string): Promise<Booking> {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.BOOKINGS.DETAIL(bookingId)}`, {
+    method: "GET",
+    headers,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to fetch booking: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
  * Format currency for display (KSh)
  */
 export function formatCurrency(amount: number): string {
   return `KSh ${amount.toLocaleString()}`;
+}
+
+/**
+ * Format date for display
+ */
+export function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+/**
+ * Format time for display
+ */
+export function formatTime(timeStr: string): string {
+  const [hours, minutes] = timeStr.split(":");
+  const hour = parseInt(hours);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minutes} ${ampm}`;
 }

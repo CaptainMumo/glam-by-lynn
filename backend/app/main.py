@@ -11,7 +11,7 @@ from app.core.database import check_db_connection
 # Import routers
 from app.routers import auth, services, bookings, gallery, testimonials
 from app.api.routes import brands, categories, products, product_images, product_variants, service_packages
-from app.api.routes.admin import locations as admin_locations, calendar as admin_calendar, bookings as admin_bookings
+from app.api.routes.admin import locations as admin_locations, calendar as admin_calendar, bookings as admin_bookings, gallery as admin_gallery
 # from app.api.routes import orders
 
 # Initialize FastAPI app
@@ -90,6 +90,7 @@ app.include_router(service_packages.router, prefix="/api")  # Admin services API
 app.include_router(admin_locations.router, prefix="/api")  # Admin locations API
 app.include_router(admin_calendar.router, prefix="/api")  # Admin calendar API
 app.include_router(admin_bookings.router, prefix="/api")  # Admin bookings API
+app.include_router(admin_gallery.router, prefix="/api")  # Admin gallery API
 # app.include_router(orders.router, prefix="/api/orders", tags=["Orders"])
 
 

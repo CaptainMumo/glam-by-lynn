@@ -36,3 +36,37 @@ class GalleryListResponse(BaseModel):
 
     class Config:
         populate_by_name = True
+
+
+class GalleryPostCreate(BaseModel):
+    """Schema for creating a gallery post."""
+
+    media_type: str = Field(..., alias="mediaType", pattern="^(image|video)$")
+    media_url: str = Field(..., alias="mediaUrl", max_length=500)
+    thumbnail_url: Optional[str] = Field(None, alias="thumbnailUrl", max_length=500)
+    caption: Optional[str] = None
+    tags: Optional[List[str]] = Field(default_factory=list)
+    source_type: Optional[str] = Field(None, alias="sourceType", pattern="^(instagram|tiktok|original)$")
+    is_featured: bool = Field(default=False, alias="isFeatured")
+    display_order: int = Field(default=0, alias="displayOrder")
+    published_at: Optional[datetime] = Field(None, alias="publishedAt")
+
+    class Config:
+        populate_by_name = True
+
+
+class GalleryPostUpdate(BaseModel):
+    """Schema for updating a gallery post."""
+
+    media_type: Optional[str] = Field(None, alias="mediaType", pattern="^(image|video)$")
+    media_url: Optional[str] = Field(None, alias="mediaUrl", max_length=500)
+    thumbnail_url: Optional[str] = Field(None, alias="thumbnailUrl", max_length=500)
+    caption: Optional[str] = None
+    tags: Optional[List[str]] = None
+    source_type: Optional[str] = Field(None, alias="sourceType", pattern="^(instagram|tiktok|original)$")
+    is_featured: Optional[bool] = Field(None, alias="isFeatured")
+    display_order: Optional[int] = Field(None, alias="displayOrder")
+    published_at: Optional[datetime] = Field(None, alias="publishedAt")
+
+    class Config:
+        populate_by_name = True

@@ -494,3 +494,317 @@ def cancel_booking(
     # in is_slot_available() function
 
     return booking
+
+
+# Admin-specific functions
+
+
+def get_all_bookings(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    status: Optional[str] = None,
+    start_date: Optional[date_type] = None,
+    end_date: Optional[date_type] = None,
+    location_id: Optional[UUID] = None,
+) -> tuple[list[Booking], int]:
+    """
+    Get all bookings with filters (admin only).
+
+    Args:
+        db: Database session
+        skip: Number of records to skip
+        limit: Maximum number of records to return
+        status: Filter by status (optional)
+        start_date: Filter by booking date >= start_date (optional)
+        end_date: Filter by booking date <= end_date (optional)
+        location_id: Filter by location ID (optional)
+
+    Returns:
+        Tuple of (bookings list, total count)
+    """
+    query = db.query(Booking)
+
+    # Apply filters
+    if status:
+        query = query.filter(Booking.status == status.lower())
+
+    if start_date:
+        query = query.filter(Booking.booking_date >= start_date)
+
+    if end_date:
+        query = query.filter(Booking.booking_date <= end_date)
+
+    if location_id:
+        query = query.filter(Booking.location_id == location_id)
+
+    # Get total count
+    total = query.count()
+
+    # Apply sorting and pagination
+    bookings = query.order_by(
+        Booking.booking_date.desc(),
+        Booking.booking_time.desc(),
+        Booking.created_at.desc()
+    ).offset(skip).limit(limit).all()
+
+    return bookings, total
+
+
+def admin_update_booking(
+    db: Session,
+    booking_id: UUID,
+    booking_date: Optional[date_type] = None,
+    booking_time: Optional[time_type] = None,
+    location_id: Optional[UUID] = None,
+    num_brides: Optional[int] = None,
+    num_maids: Optional[int] = None,
+    num_mothers: Optional[int] = None,
+    num_others: Optional[int] = None,
+    wedding_theme: Optional[str] = None,
+    special_requests: Optional[str] = None,
+    admin_notes: Optional[str] = None,
+) -> Booking:
+    """
+    Update a booking (admin only, bypasses ownership check).
+
+    Args:
+        db: Database session
+        booking_id: Booking ID
+        booking_date: New booking date (optional)
+        booking_time: New booking time (optional)
+        location_id: New location ID (optional)
+        num_brides: New number of brides (optional)
+        num_maids: New number of maids (optional)
+        num_mothers: New number of mothers (optional)
+        num_others: New number of others (optional)
+        wedding_theme: New wedding theme (optional)
+        special_requests: New special requests (optional)
+        admin_notes: New admin notes (optional)
+
+    Returns:
+        Updated booking
+
+    Raises:
+        ValueError: If booking not found or validation fails
+    """
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise ValueError(f"Booking with ID {booking_id} not found")
+
+    # Track if pricing needs recalculation
+    recalculate_pricing = False
+
+    # Update date/time if provided and check availability
+    if booking_date is not None and booking_time is not None:
+        # Only check availability if changing date/time
+        if booking_date != booking.booking_date or booking_time != booking.booking_time:
+            is_available, reason = is_slot_available(db, booking_date, booking_time)
+            if not is_available:
+                raise ValueError(f"Selected time slot is not available. Reason: {reason}")
+            booking.booking_date = booking_date
+            booking.booking_time = booking_time
+    elif booking_date is not None:
+        if booking_date != booking.booking_date:
+            is_available, reason = is_slot_available(db, booking_date, booking.booking_time)
+            if not is_available:
+                raise ValueError(f"Selected time slot is not available. Reason: {reason}")
+            booking.booking_date = booking_date
+    elif booking_time is not None:
+        if booking_time != booking.booking_time:
+            is_available, reason = is_slot_available(db, booking.booking_date, booking_time)
+            if not is_available:
+                raise ValueError(f"Selected time slot is not available. Reason: {reason}")
+            booking.booking_time = booking_time
+
+    # Update location if provided
+    if location_id is not None and location_id != booking.location_id:
+        location = db.query(TransportLocation).filter(TransportLocation.id == location_id).first()
+        if not location:
+            raise ValueError(f"Transport location with ID {location_id} not found")
+        if not location.is_active:
+            raise ValueError(f"Transport location '{location.location_name}' is not active")
+        booking.location_id = location_id
+        recalculate_pricing = True
+
+    # Update participant counts
+    if num_brides is not None and num_brides != booking.num_brides:
+        booking.num_brides = num_brides
+        recalculate_pricing = True
+
+    if num_maids is not None and num_maids != booking.num_maids:
+        booking.num_maids = num_maids
+        recalculate_pricing = True
+
+    if num_mothers is not None and num_mothers != booking.num_mothers:
+        booking.num_mothers = num_mothers
+        recalculate_pricing = True
+
+    if num_others is not None and num_others != booking.num_others:
+        booking.num_others = num_others
+        recalculate_pricing = True
+
+    # Recalculate pricing if necessary
+    if recalculate_pricing:
+        subtotal, transport_cost, total_amount = calculate_booking_price(
+            db=db,
+            package_id=booking.package_id,
+            location_id=booking.location_id,
+            num_brides=booking.num_brides,
+            num_maids=booking.num_maids,
+            num_mothers=booking.num_mothers,
+            num_others=booking.num_others
+        )
+        booking.subtotal = subtotal
+        booking.transport_cost = transport_cost
+        booking.total_amount = total_amount
+        booking.deposit_amount = round(total_amount * Decimal('0.5'), 2)
+
+    # Update other fields
+    if wedding_theme is not None:
+        booking.wedding_theme = wedding_theme
+
+    if special_requests is not None:
+        booking.special_requests = special_requests
+
+    if admin_notes is not None:
+        booking.admin_notes = admin_notes
+
+    db.commit()
+    db.refresh(booking)
+
+    return booking
+
+
+def admin_mark_deposit_paid(
+    db: Session,
+    booking_id: UUID,
+    deposit_paid: bool,
+    admin_notes: Optional[str] = None
+) -> Booking:
+    """
+    Mark deposit as paid/unpaid (admin only).
+
+    Args:
+        db: Database session
+        booking_id: Booking ID
+        deposit_paid: Deposit paid status
+        admin_notes: Optional admin notes
+
+    Returns:
+        Updated booking
+
+    Raises:
+        ValueError: If booking not found
+    """
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise ValueError(f"Booking with ID {booking_id} not found")
+
+    booking.deposit_paid = deposit_paid
+
+    if deposit_paid:
+        booking.deposit_paid_at = datetime.utcnow()
+        if booking.status == "pending":
+            booking.status = "deposit_paid"
+    else:
+        booking.deposit_paid_at = None
+
+    # Add note about deposit change
+    if admin_notes:
+        existing_notes = booking.admin_notes or ""
+        note = f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Deposit {('paid' if deposit_paid else 'unpaid')}: {admin_notes}"
+        booking.admin_notes = existing_notes + note
+
+    db.commit()
+    db.refresh(booking)
+
+    return booking
+
+
+def admin_update_booking_status(
+    db: Session,
+    booking_id: UUID,
+    status: str,
+    admin_notes: Optional[str] = None
+) -> Booking:
+    """
+    Update booking status (admin only).
+
+    Args:
+        db: Database session
+        booking_id: Booking ID
+        status: New status (pending, confirmed, deposit_paid, completed, cancelled)
+        admin_notes: Optional admin notes
+
+    Returns:
+        Updated booking
+
+    Raises:
+        ValueError: If booking not found or invalid status
+    """
+    valid_statuses = ['pending', 'confirmed', 'deposit_paid', 'completed', 'cancelled']
+    if status not in valid_statuses:
+        raise ValueError(f"Invalid status '{status}'. Must be one of: {', '.join(valid_statuses)}")
+
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise ValueError(f"Booking with ID {booking_id} not found")
+
+    old_status = booking.status
+    booking.status = status
+
+    # Add note about status change
+    existing_notes = booking.admin_notes or ""
+    note = f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Status changed from '{old_status}' to '{status}'"
+    if admin_notes:
+        note += f": {admin_notes}"
+    booking.admin_notes = existing_notes + note
+
+    db.commit()
+    db.refresh(booking)
+
+    return booking
+
+
+def admin_cancel_booking(
+    db: Session,
+    booking_id: UUID,
+    admin_notes: Optional[str] = None
+) -> Booking:
+    """
+    Cancel a booking (admin only, bypasses ownership check and cancellation policy).
+
+    Args:
+        db: Database session
+        booking_id: Booking ID
+        admin_notes: Optional admin notes for cancellation reason
+
+    Returns:
+        Cancelled booking
+
+    Raises:
+        ValueError: If booking not found or already cancelled
+    """
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise ValueError(f"Booking with ID {booking_id} not found")
+
+    if booking.status == "cancelled":
+        raise ValueError("Booking is already cancelled")
+
+    # Admin can cancel any booking, even if it's within 24 hours or completed
+    booking.status = "cancelled"
+
+    # Add cancellation note
+    existing_notes = booking.admin_notes or ""
+    if admin_notes:
+        cancellation_note = f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Admin cancelled: {admin_notes}"
+    else:
+        cancellation_note = f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Admin cancelled"
+    booking.admin_notes = existing_notes + cancellation_note
+
+    db.commit()
+    db.refresh(booking)
+
+    return booking

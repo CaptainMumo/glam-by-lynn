@@ -97,15 +97,15 @@ function BookingFormContent() {
   // Calculate price
   const pricing = selectedPackage && selectedLocation
     ? calculateBookingPrice(
-        selectedPackage.baseBridePrice || 0,
-        selectedPackage.baseMaidPrice || 0,
-        selectedPackage.baseMotherPrice || 0,
-        selectedPackage.baseOtherPrice || 0,
+        parseFloat(selectedPackage.base_bride_price || "0"),
+        parseFloat(selectedPackage.base_maid_price || "0"),
+        parseFloat(selectedPackage.base_mother_price || "0"),
+        parseFloat(selectedPackage.base_other_price || "0"),
         numBrides,
         numMaids,
         numMothers,
         numOthers,
-        selectedLocation.transportCost
+        parseFloat(selectedLocation.transport_cost)
       )
     : null;
 
@@ -122,11 +122,11 @@ function BookingFormContent() {
   // Package validation
   const attendeeErrors = [];
   if (selectedPackage) {
-    if (selectedPackage.minMaids && numMaids < selectedPackage.minMaids) {
-      attendeeErrors.push(`Minimum ${selectedPackage.minMaids} maid(s) required for this package`);
+    if (selectedPackage.min_maids && numMaids < selectedPackage.min_maids) {
+      attendeeErrors.push(`Minimum ${selectedPackage.min_maids} maid(s) required for this package`);
     }
-    if (selectedPackage.maxMaids && numMaids > selectedPackage.maxMaids) {
-      attendeeErrors.push(`Maximum ${selectedPackage.maxMaids} maid(s) allowed for this package`);
+    if (selectedPackage.max_maids && numMaids > selectedPackage.max_maids) {
+      attendeeErrors.push(`Maximum ${selectedPackage.max_maids} maid(s) allowed for this package`);
     }
   }
 
@@ -161,7 +161,7 @@ function BookingFormContent() {
         }),
       };
 
-      const token = session?.user?.email ? "dummy-token" : undefined; // TODO: Get real token from session
+      const token = session?.user?.accessToken; // Get real JWT token from session
       const booking = await createBooking(bookingData, token);
 
       // Redirect to confirmation page
@@ -230,7 +230,7 @@ function BookingFormContent() {
                     {packages.map((pkg) => (
                       <SelectItem key={pkg.id} value={pkg.id}>
                         {pkg.name}
-                        {pkg.durationMinutes && ` (${Math.floor(pkg.durationMinutes / 60)}h)`}
+                        {pkg.duration_minutes && ` (${Math.floor(pkg.duration_minutes / 60)}h)`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -295,8 +295,8 @@ function BookingFormContent() {
                   <SelectContent>
                     {locations.map((loc) => (
                       <SelectItem key={loc.id} value={loc.id}>
-                        {loc.locationName}
-                        {loc.transportCost > 0 && ` (+${formatCurrency(loc.transportCost)})`}
+                        {loc.location_name}
+                        {parseFloat(loc.transport_cost) > 0 && ` (+${formatCurrency(parseFloat(loc.transport_cost))})`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -326,10 +326,10 @@ function BookingFormContent() {
               )}
 
               <div className="grid gap-4 md:grid-cols-2">
-                {selectedPackage?.baseBridePrice && selectedPackage.baseBridePrice > 0 && (
+                {selectedPackage?.base_bride_price && parseFloat(selectedPackage.base_bride_price) > 0 && (
                   <div className="space-y-2">
                     <Label htmlFor="brides">
-                      Brides ({formatCurrency(selectedPackage.baseBridePrice)} each)
+                      Brides ({formatCurrency(parseFloat(selectedPackage.base_bride_price))} each)
                     </Label>
                     <Input
                       id="brides"
@@ -341,10 +341,10 @@ function BookingFormContent() {
                   </div>
                 )}
 
-                {selectedPackage?.baseMaidPrice && selectedPackage.baseMaidPrice > 0 && (
+                {selectedPackage?.base_maid_price && parseFloat(selectedPackage.base_maid_price) > 0 && (
                   <div className="space-y-2">
                     <Label htmlFor="maids">
-                      Maids/Bridesmaids ({formatCurrency(selectedPackage.baseMaidPrice)} each)
+                      Maids/Bridesmaids ({formatCurrency(parseFloat(selectedPackage.base_maid_price))} each)
                     </Label>
                     <Input
                       id="maids"
@@ -356,10 +356,10 @@ function BookingFormContent() {
                   </div>
                 )}
 
-                {selectedPackage?.baseMotherPrice && selectedPackage.baseMotherPrice > 0 && (
+                {selectedPackage?.base_mother_price && parseFloat(selectedPackage.base_mother_price) > 0 && (
                   <div className="space-y-2">
                     <Label htmlFor="mothers">
-                      Mothers ({formatCurrency(selectedPackage.baseMotherPrice)} each)
+                      Mothers ({formatCurrency(parseFloat(selectedPackage.base_mother_price))} each)
                     </Label>
                     <Input
                       id="mothers"
@@ -371,10 +371,10 @@ function BookingFormContent() {
                   </div>
                 )}
 
-                {selectedPackage?.baseOtherPrice && selectedPackage.baseOtherPrice > 0 && (
+                {selectedPackage?.base_other_price && parseFloat(selectedPackage.base_other_price) > 0 && (
                   <div className="space-y-2">
                     <Label htmlFor="others">
-                      Others ({formatCurrency(selectedPackage.baseOtherPrice)} each)
+                      Others - Aunties, Cousins, Friends ({formatCurrency(parseFloat(selectedPackage.base_other_price))} each)
                     </Label>
                     <Input
                       id="others"

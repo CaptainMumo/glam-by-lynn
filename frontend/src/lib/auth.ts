@@ -47,15 +47,24 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     /**
      * Called when user signs in
-     * Sends Google auth to backend to create/get user
+     * Sends Google auth to backend to create/get user and receives JWT tokens
      */
     async signIn({ user, account }) {
       if (!account) return false;
 
       try {
+        const url = `${API_BASE_URL}${API_ENDPOINTS.AUTH.GOOGLE_LOGIN}`;
+        console.log('[signIn callback] Attempting to call backend at:', url);
+        console.log('[signIn callback] Request data:', {
+          email: user.email,
+          googleId: account.providerAccountId,
+          name: user.name,
+          image: user.image,
+        });
+
         // Send Google auth info to backend
         const response = await axios.post(
-          `${API_BASE_URL}${API_ENDPOINTS.AUTH.GOOGLE_LOGIN}`,
+          url,
           {
             email: user.email,
             googleId: account.providerAccountId,
@@ -64,30 +73,41 @@ export const authOptions: NextAuthOptions = {
           }
         );
 
-        // Store backend user data
+        console.log('[signIn callback] Backend response:', response.data);
+
+        // Store backend user data and JWT tokens
         if (response.data) {
           user.id = response.data.id;
           user.isAdmin = response.data.isAdmin;
           user.adminRole = response.data.adminRole;
+          user.accessToken = response.data.accessToken;
+          user.refreshToken = response.data.refreshToken;
         }
 
         return true;
       } catch (error) {
-        console.error("Error signing in:", error);
+        console.error("[signIn callback] Error details:", {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          response: (error as any)?.response?.data,
+          status: (error as any)?.response?.status,
+          code: (error as any)?.code,
+        });
         return false;
       }
     },
 
     /**
      * Called whenever a JWT is created or updated
-     * Add custom claims to the token
+     * Add custom claims to the token including backend JWT tokens
      */
     async jwt({ token, user, trigger, session }) {
-      // Initial sign in
+      // Initial sign in - store JWT tokens from backend
       if (user) {
         token.id = user.id;
         token.isAdmin = user.isAdmin ?? false;
         token.adminRole = user.adminRole ?? null;
+        token.accessToken = user.accessToken;
+        token.refreshToken = user.refreshToken;
       }
 
       // Update session (when session is updated on client)
@@ -96,12 +116,12 @@ export const authOptions: NextAuthOptions = {
         token.adminRole = session.adminRole;
       }
 
-      // Refresh user data from backend periodically
-      if (token.id && (!token.lastRefresh || Date.now() - (token.lastRefresh as number) > 60 * 60 * 1000)) {
+      // Refresh user data from backend periodically using backend JWT token
+      if (token.accessToken && (!token.lastRefresh || Date.now() - (token.lastRefresh as number) > 60 * 60 * 1000)) {
         try {
           const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.AUTH.ME}`, {
             headers: {
-              Authorization: `Bearer ${token.id}`,
+              Authorization: `Bearer ${token.accessToken}`,
             },
           });
 
@@ -120,7 +140,7 @@ export const authOptions: NextAuthOptions = {
 
     /**
      * Called whenever session is checked
-     * Add custom properties to the session object
+     * Add custom properties to the session object including access token
      */
     async session({ session, token }) {
       if (session.user) {
@@ -133,6 +153,8 @@ export const authOptions: NextAuthOptions = {
           | "content_editor"
           | "artist"
           | null;
+        session.user.accessToken = token.accessToken as string;
+        session.user.refreshToken = token.refreshToken as string;
       }
 
       return session;

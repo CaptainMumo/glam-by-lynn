@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.models.user import User
 from app.schemas.auth import (
     GoogleAuthRequest,
+    GoogleAuthResponse,
     TokenResponse,
     RefreshTokenRequest,
     UserResponse
@@ -23,7 +24,7 @@ from app.services import user_service
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/google-login", response_model=UserResponse, status_code=status.HTTP_200_OK)
+@router.post("/google-login", response_model=GoogleAuthResponse, status_code=status.HTTP_200_OK)
 async def google_auth(
     auth_data: GoogleAuthRequest,
     db: Session = Depends(get_db)
@@ -38,7 +39,8 @@ async def google_auth(
         db: Database session
 
     Returns:
-        User information (guest data automatically linked if applicable)
+        User information with JWT tokens for API authentication
+        (guest data automatically linked if applicable)
 
     Raises:
         HTTPException: If authentication fails
@@ -59,7 +61,27 @@ async def google_auth(
             detail="User account is inactive"
         )
 
-    return user
+    # Create JWT tokens for API authentication
+    access_token = create_access_token(
+        data={"sub": str(user.id), "email": user.email}
+    )
+    refresh_token = create_refresh_token(
+        data={"sub": str(user.id)}
+    )
+
+    # Return user data with tokens
+    return GoogleAuthResponse(
+        id=user.id,
+        email=user.email,
+        google_id=user.google_id,
+        full_name=user.full_name,
+        profile_picture_url=user.profile_picture_url,
+        is_admin=user.is_admin,
+        admin_role=user.admin_role,
+        is_active=user.is_active,
+        access_token=access_token,
+        refresh_token=refresh_token
+    )
 
 
 @router.get("/me", response_model=UserResponse)

@@ -82,20 +82,18 @@ def link_guest_data_to_user(
     # Find all guest orders with this email
     guest_orders = db.query(Order).filter(
         Order.user_id == None,  # Guest orders have NULL user_id
-        Order.email == guest_email
+        Order.guest_email == guest_email
     ).all()
 
     # Find all guest bookings with this email
     guest_bookings = db.query(Booking).filter(
         Booking.user_id == None,  # Guest bookings have NULL user_id
-        Booking.email == guest_email
+        Booking.guest_email == guest_email
     ).all()
 
-    # Find guest carts
-    guest_carts = db.query(Cart).filter(
-        Cart.user_id == None,
-        Cart.guest_email == guest_email
-    ).all()
+    # Note: Carts are user-only (no guest carts in the system)
+    # The Cart model requires user_id and doesn't support guest_email
+    guest_carts = []
 
     # Link orders to user
     orders_linked = 0
@@ -160,10 +158,10 @@ def get_or_create_user_from_oauth(
 
     if user:
         # User exists, update profile if needed
-        if name and user.name != name:
-            user.name = name
-        if image and user.image != image:
-            user.image = image
+        if name and user.full_name != name:
+            user.full_name = name
+        if image and user.profile_picture_url != image:
+            user.profile_picture_url = image
         db.commit()
         db.refresh(user)
         return user, created, link_stats
@@ -175,9 +173,9 @@ def get_or_create_user_from_oauth(
         # Existing user (possibly guest), update with Google ID
         user.google_id = google_id
         if name:
-            user.name = name
+            user.full_name = name
         if image:
-            user.image = image
+            user.profile_picture_url = image
         db.commit()
         db.refresh(user)
 
@@ -191,8 +189,8 @@ def get_or_create_user_from_oauth(
     user = User(
         email=email,
         google_id=google_id,
-        name=name,
-        image=image,
+        full_name=name,
+        profile_picture_url=image,
         is_active=True,
         is_admin=False
     )

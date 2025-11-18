@@ -65,6 +65,28 @@ async def list_active_packages(
     )
 
 
+@router.get("/locations", response_model=list[TransportLocationResponse])
+async def list_active_locations(
+    db: Session = Depends(get_db)
+):
+    """
+    Get list of active transport locations (public endpoint)
+
+    **Publicly accessible - No authentication required**
+
+    Returns all active transport locations for booking.
+
+    Returns:
+    - List of transport locations with names and costs
+    - Only active locations are returned
+    """
+    locations = db.query(TransportLocation).filter(
+        TransportLocation.is_active == True
+    ).order_by(TransportLocation.location_name).all()
+
+    return locations
+
+
 @router.get("/{package_id}", response_model=ServicePackageResponse)
 async def get_package_details(
     package_id: UUID,
@@ -99,25 +121,3 @@ async def get_package_details(
         )
 
     return package
-
-
-@router.get("/locations", response_model=list[TransportLocationResponse])
-async def list_active_locations(
-    db: Session = Depends(get_db)
-):
-    """
-    Get list of active transport locations (public endpoint)
-
-    **Publicly accessible - No authentication required**
-
-    Returns all active transport locations for booking.
-
-    Returns:
-    - List of transport locations with names and costs
-    - Only active locations are returned
-    """
-    locations = db.query(TransportLocation).filter(
-        TransportLocation.is_active == True
-    ).order_by(TransportLocation.location_name).all()
-
-    return locations

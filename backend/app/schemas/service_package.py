@@ -114,3 +114,17 @@ class ServicePackageListResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+
+
+class TransportLocationResponse(BaseModel):
+    """Schema for transport location response"""
+    id: UUID
+    location_name: str
+    county: Optional[str] = None
+    transport_cost: Decimal
+    is_free: bool
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

@@ -138,6 +138,9 @@ export interface Booking {
   depositPaid: boolean;
   depositPaidAt?: string;
   status: "pending" | "confirmed" | "deposit_paid" | "completed" | "cancelled";
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt: string;
   package?: ServicePackage;
   location?: TransportLocation;
 }

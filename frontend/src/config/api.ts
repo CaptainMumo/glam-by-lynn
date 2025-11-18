@@ -82,6 +82,16 @@ export const API_ENDPOINTS = {
     UNBLOCK: (id: string) => `/api/admin/calendar/block/${id}`,
     DETAIL: (id: string) => `/api/admin/calendar/${id}`,
   },
+  // Admin - Bookings
+  ADMIN_BOOKINGS: {
+    LIST: "/api/admin/bookings",
+    DETAIL: (id: string) => `/api/admin/bookings/${id}`,
+    UPDATE: (id: string) => `/api/admin/bookings/${id}`,
+    DEPOSIT: (id: string) => `/api/admin/bookings/${id}/deposit`,
+    STATUS: (id: string) => `/api/admin/bookings/${id}/status`,
+    CANCEL: (id: string) => `/api/admin/bookings/${id}`,
+    EXPORT_CSV: "/api/admin/bookings/export/csv",
+  },
 } as const;
 
 export const HTTP_METHODS = {

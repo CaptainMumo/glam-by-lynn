@@ -6,6 +6,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,8 @@ import type { Product, Brand, Category } from "@/types";
 type ViewMode = "grid" | "list";
 
 export default function ProductsPage() {
+  const router = useRouter();
+
   // State
   const [products, setProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -508,8 +511,11 @@ export default function ProductsPage() {
                               : "Out of stock"}
                           </p>
                         </div>
-                        <Button size="sm" disabled={product.inventoryCount === 0}>
-                          {product.inventoryCount === 0 ? "Out of Stock" : "View Details"}
+                        <Button
+                          size="sm"
+                          onClick={() => router.push(`/products/${product.id}`)}
+                        >
+                          View Details
                         </Button>
                       </div>
                     </CardContent>

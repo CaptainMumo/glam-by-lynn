@@ -62,8 +62,16 @@ export const API_ENDPOINTS = {
   },
   // Reviews
   REVIEWS: {
-    CREATE: "/reviews",
-    LIST: (productId: string) => `/products/${productId}/reviews`,
+    CREATE: (productId: string) => `/api/products/${productId}/reviews`,
+    LIST: (productId: string) => `/api/products/${productId}/reviews`,
+    SUMMARY: (productId: string) => `/api/products/${productId}/reviews/summary`,
+    UPDATE: (reviewId: string) => `/api/reviews/${reviewId}`,
+    DELETE: (reviewId: string) => `/api/reviews/${reviewId}`,
+    MARK_HELPFUL: (reviewId: string) => `/api/reviews/${reviewId}/helpful`,
+  },
+  // Admin Reviews
+  ADMIN_REVIEWS: {
+    UPDATE: (reviewId: string) => `/api/admin/reviews/${reviewId}`,
   },
   // Gallery
   GALLERY: {

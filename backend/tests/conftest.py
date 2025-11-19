@@ -42,16 +42,32 @@ def db_session():
 
 @pytest.fixture(scope="function")
 def client(db_session):
-    """Create a test client with overridden database dependency"""
+    """Create a test client with overridden database dependency and disabled rate limiting"""
     def override_get_db():
         try:
             yield db_session
         finally:
             pass
 
+    # Clear middleware to disable rate limiting in tests
+    # Save original middleware
+    original_middleware = app.user_middleware.copy()
+
+    # Remove rate limiting middleware for tests
+    app.user_middleware = [
+        middleware for middleware in app.user_middleware
+        if middleware.cls.__name__ not in ['RateLimitMiddleware', 'AuthRateLimitMiddleware']
+    ]
+    app.middleware_stack = app.build_middleware_stack()
+
     app.dependency_overrides[get_db] = override_get_db
+
     with TestClient(app) as test_client:
         yield test_client
+
+    # Restore original middleware
+    app.user_middleware = original_middleware
+    app.middleware_stack = app.build_middleware_stack()
     app.dependency_overrides.clear()
 
 

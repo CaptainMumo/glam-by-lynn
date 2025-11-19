@@ -7,6 +7,11 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.database import check_db_connection
+from app.core.middleware import (
+    SecurityHeadersMiddleware,
+    RateLimitMiddleware,
+    AuthRateLimitMiddleware,
+)
 
 # Import routers
 from app.routers import auth, services, bookings, gallery, testimonials, products as public_products
@@ -31,6 +36,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add security headers
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Add rate limiting (general)
+app.add_middleware(
+    RateLimitMiddleware,
+    requests_per_minute=settings.RATE_LIMIT_PER_MINUTE,
+    requests_per_hour=settings.RATE_LIMIT_PER_MINUTE * 60,
+)
+
+# Add stricter rate limiting for auth endpoints
+app.add_middleware(AuthRateLimitMiddleware)
 
 
 # Health check endpoint

@@ -40,7 +40,7 @@ def create_guest_user(
     # Create guest user (google_id = NULL)
     guest_user = User(
         email=email,
-        name=name,
+        full_name=name,
         google_id=None,  # Guest users don't have Google ID
         is_active=True,
         is_admin=False

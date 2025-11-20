@@ -153,9 +153,11 @@ export const authOptions: NextAuthOptions = {
           | "content_editor"
           | "artist"
           | null;
-        session.user.accessToken = token.accessToken as string;
-        session.user.refreshToken = token.refreshToken as string;
       }
+
+      // Add tokens at session level
+      session.accessToken = token.accessToken as string;
+      session.refreshToken = token.refreshToken as string;
 
       return session;
     },

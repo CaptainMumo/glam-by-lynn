@@ -32,9 +32,9 @@ declare module "next-auth" {
       image?: string | null;
       isAdmin: boolean;
       adminRole: "super_admin" | "product_manager" | "booking_manager" | "content_editor" | "artist" | null;
-      accessToken?: string;
-      refreshToken?: string;
     };
+    accessToken?: string;
+    refreshToken?: string;
   }
 }
 

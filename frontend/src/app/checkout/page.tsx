@@ -251,7 +251,7 @@ export default function CheckoutPage() {
 
         // Redirect to order confirmation
         setTimeout(() => {
-          router.push(`/orders/${order.id}`);
+          router.push(`/orders/${order.id}/confirmation`);
         }, 1500);
       } else {
         const errorData = await res.json();

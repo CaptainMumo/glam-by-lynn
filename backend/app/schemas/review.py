@@ -10,7 +10,7 @@ class ReviewCreate(BaseModel):
     """Schema for creating a review."""
 
     rating: int = Field(..., ge=1, le=5, description="Rating from 1 to 5 stars")
-    review_text: Optional[str] = Field(None, max_length=5000, description="Review text (optional)")
+    review_text: Optional[str] = Field(None, max_length=5000, description="Review text (optional)", alias="reviewText")
 
     @field_validator("review_text")
     @classmethod
@@ -21,6 +21,8 @@ class ReviewCreate(BaseModel):
             if len(v) < 10 and len(v) > 0:
                 raise ValueError("Review text must be at least 10 characters if provided")
         return v if v else None
+
+    model_config = {"populate_by_name": True}
 
 
 class ReviewUpdate(BaseModel):
@@ -92,7 +94,7 @@ class ReviewResponse(BaseModel):
 class ReviewListResponse(BaseModel):
     """Schema for paginated review list response."""
 
-    items: list[ReviewResponse]
+    reviews: list[ReviewResponse]
     total: int
     page: int
     page_size: int = Field(..., alias="pageSize")

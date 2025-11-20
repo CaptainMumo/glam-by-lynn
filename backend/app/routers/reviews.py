@@ -38,18 +38,18 @@ async def create_product_review(
     - Created review with is_approved=False (pending admin approval)
     - is_verified_purchase=True if user has purchased the product
     """
-    try:
-        review = review_service.create_review(
-            db=db,
-            product_id=product_id,
-            user_id=current_user.id,
-            rating=review_data.rating,
-            review_text=review_data.review_text,
-        )
-    except ValueError as e:
+    success, message, review = review_service.create_review(
+        db=db,
+        user_id=current_user.id,
+        product_id=product_id,
+        rating=review_data.rating,
+        review_text=review_data.review_text,
+    )
+
+    if not success:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail=message,
         )
 
     return review
@@ -60,8 +60,6 @@ async def list_product_reviews(
     product_id: UUID,
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=50, alias="pageSize", description="Items per page"),
-    sort_by: str = Query("created_at", alias="sortBy", description="Sort field (created_at, rating, helpful_count)"),
-    sort_order: str = Query("desc", alias="sortOrder", pattern="^(asc|desc)$", description="Sort order"),
     db: Session = Depends(get_db),
 ):
     """
@@ -72,8 +70,6 @@ async def list_product_reviews(
     Query parameters:
     - **page**: Page number (default: 1)
     - **pageSize**: Items per page (default: 10, max: 50)
-    - **sortBy**: Sort field - created_at, rating, or helpful_count (default: created_at)
-    - **sortOrder**: Sort order - asc or desc (default: desc)
 
     **Response includes:**
     - Review rating and text
@@ -83,26 +79,26 @@ async def list_product_reviews(
     - Helpful count
     - Timestamps
     """
-    skip = (page - 1) * page_size
-
-    reviews, total = review_service.get_product_reviews(
+    reviews, total, total_pages = review_service.get_product_reviews(
         db=db,
         product_id=product_id,
-        skip=skip,
-        limit=page_size,
-        approved_only=True,  # Only show approved reviews to public
-        sort_by=sort_by,
-        sort_order=sort_order,
+        page=page,
+        page_size=page_size,
+        only_approved=True,  # Only show approved reviews to public
     )
 
-    total_pages = math.ceil(total / page_size) if total > 0 else 1
+    # Calculate average rating
+    average_rating = None
+    if reviews:
+        average_rating = sum(review.rating for review in reviews) / len(reviews)
 
     return ReviewListResponse(
-        items=reviews,
+        reviews=reviews,
         total=total,
         page=page,
         pageSize=page_size,
         totalPages=total_pages,
+        averageRating=average_rating,
     )
 
 
@@ -144,12 +140,14 @@ async def mark_review_helpful(
     In a production system, you might want to track which users marked
     which reviews as helpful to prevent duplicate votes.
     """
-    review = review_service.mark_review_helpful(db, review_id)
+    success, message = review_service.increment_helpful_count(db, review_id)
 
-    if not review:
+    if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Review with ID {review_id} not found",
+            detail=message,
         )
 
+    # Fetch and return the updated review
+    review = review_service.get_review_by_id(db, review_id)
     return review

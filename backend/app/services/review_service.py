@@ -8,6 +8,7 @@ from sqlalchemy import and_
 
 from app.models.content import Review
 from app.models.order import Order, OrderItem
+from app.models.product import Product
 
 
 def get_review_by_id(db: Session, review_id: UUID) -> Optional[Review]:
@@ -59,31 +60,33 @@ def check_verified_purchase(db: Session, user_id: UUID, product_id: UUID) -> Tup
 
 def create_review(
     db: Session,
-    product_id: UUID,
     user_id: UUID,
+    product_id: UUID,
     rating: int,
     review_text: Optional[str] = None,
-) -> Review:
+) -> Tuple[bool, str, Optional[Review]]:
     """
     Create a new review.
 
     Args:
         db: Database session
-        product_id: Product ID
         user_id: User ID
+        product_id: Product ID
         rating: Rating (1-5)
         review_text: Review text (optional)
 
     Returns:
-        Created review
-
-    Raises:
-        ValueError: If user already reviewed this product
+        Tuple of (success, message, review)
     """
+    # Check if product exists
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        return False, "Product not found", None
+
     # Check if user already reviewed this product
     existing = get_user_review_for_product(db, user_id, product_id)
     if existing:
-        raise ValueError("You have already reviewed this product")
+        return False, "You have already reviewed this product", None
 
     # Check for verified purchase
     is_verified, order_id = check_verified_purchase(db, user_id, product_id)
@@ -104,55 +107,49 @@ def create_review(
     db.commit()
     db.refresh(review)
 
-    return review
+    return True, "Review created successfully. It will be visible after admin approval.", review
 
 
 def get_product_reviews(
     db: Session,
     product_id: UUID,
-    skip: int = 0,
-    limit: int = 20,
-    approved_only: bool = True,
-    sort_by: str = "created_at",
-    sort_order: str = "desc",
-) -> Tuple[list[Review], int]:
+    page: int = 1,
+    page_size: int = 20,
+    only_approved: bool = True,
+) -> Tuple[list[Review], int, int]:
     """
     Get reviews for a product with pagination.
 
     Args:
         db: Database session
         product_id: Product ID
-        skip: Number of records to skip
-        limit: Maximum number of records to return
-        approved_only: Only return approved reviews (default: True for public)
-        sort_by: Sort field (created_at, rating, helpful_count)
-        sort_order: Sort order (asc or desc)
+        page: Page number (1-indexed)
+        page_size: Number of reviews per page
+        only_approved: If True, only return approved reviews
 
     Returns:
-        Tuple of (reviews list, total count)
+        Tuple of (reviews list, total count, total pages)
     """
     query = db.query(Review).options(joinedload(Review.user)).filter(Review.product_id == product_id)
 
     # Filter by approval status
-    if approved_only:
+    if only_approved:
         query = query.filter(Review.is_approved == True)
 
     # Get total count
     total = query.count()
 
-    # Determine sort field
-    sort_field = getattr(Review, sort_by, Review.created_at)
+    # Order by created_at descending (newest first)
+    reviews = (
+        query.order_by(Review.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
 
-    # Apply sorting
-    if sort_order == "asc":
-        query = query.order_by(sort_field.asc())
-    else:
-        query = query.order_by(sort_field.desc())
+    total_pages = (total + page_size - 1) // page_size
 
-    # Apply pagination
-    reviews = query.offset(skip).limit(limit).all()
-
-    return reviews, total
+    return reviews, total, total_pages
 
 
 def update_review(
@@ -161,7 +158,7 @@ def update_review(
     user_id: UUID,
     rating: Optional[int] = None,
     review_text: Optional[str] = None,
-) -> Optional[Review]:
+) -> Tuple[bool, str, Optional[Review]]:
     """
     Update a review (user can only update their own review).
 
@@ -173,18 +170,15 @@ def update_review(
         review_text: Optional new review text
 
     Returns:
-        Updated review or None if not found/unauthorized
-
-    Raises:
-        ValueError: If user doesn't own the review
+        Tuple of (success, message, review)
     """
     review = db.query(Review).filter(Review.id == review_id).first()
 
     if not review:
-        return None
+        return False, "Review not found", None
 
     if review.user_id != user_id:
-        raise ValueError("You can only update your own reviews")
+        return False, "You can only update your own reviews", None
 
     # Update fields
     if rating is not None:
@@ -200,30 +194,34 @@ def update_review(
     db.commit()
     db.refresh(review)
 
-    return review
+    return True, "Review updated successfully. It will be reviewed by admin.", review
 
 
-def update_review_approval(
-    db: Session, review_id: UUID, is_approved: bool, admin_reply: Optional[str] = None
-) -> Optional[Review]:
+def admin_update_review(
+    db: Session,
+    review_id: UUID,
+    is_approved: Optional[bool] = None,
+    admin_reply: Optional[str] = None,
+) -> Tuple[bool, str, Optional[Review]]:
     """
-    Update review approval status and optionally add admin reply.
+    Admin update review approval status and add reply.
 
     Args:
         db: Database session
         review_id: Review ID
-        is_approved: Approval status
+        is_approved: Optional approval status
         admin_reply: Optional admin reply
 
     Returns:
-        Updated review or None if not found
+        Tuple of (success, message, review)
     """
     review = db.query(Review).filter(Review.id == review_id).first()
 
     if not review:
-        return None
+        return False, "Review not found", None
 
-    review.is_approved = is_approved
+    if is_approved is not None:
+        review.is_approved = is_approved
 
     if admin_reply is not None:
         review.admin_reply = admin_reply
@@ -232,10 +230,10 @@ def update_review_approval(
     db.commit()
     db.refresh(review)
 
-    return review
+    return True, "Review updated successfully", review
 
 
-def delete_review(db: Session, review_id: UUID, user_id: UUID) -> bool:
+def delete_review(db: Session, review_id: UUID, user_id: UUID) -> Tuple[bool, str]:
     """
     Delete a review (user can only delete their own review).
 
@@ -245,46 +243,42 @@ def delete_review(db: Session, review_id: UUID, user_id: UUID) -> bool:
         user_id: User ID (must match review user_id)
 
     Returns:
-        True if deleted, False if not found
-
-    Raises:
-        ValueError: If user doesn't own the review
+        Tuple of (success, message)
     """
     review = db.query(Review).filter(Review.id == review_id).first()
 
     if not review:
-        return False
+        return False, "Review not found"
 
     if review.user_id != user_id:
-        raise ValueError("You can only delete your own reviews")
+        return False, "You can only delete your own reviews"
 
     db.delete(review)
     db.commit()
 
-    return True
+    return True, "Review deleted successfully"
 
 
-def mark_review_helpful(db: Session, review_id: UUID) -> Optional[Review]:
+def increment_helpful_count(db: Session, review_id: UUID) -> Tuple[bool, str]:
     """
-    Increment helpful count for a review.
+    Increment the helpful count for a review.
 
     Args:
         db: Database session
         review_id: Review ID
 
     Returns:
-        Updated review or None if not found
+        Tuple of (success, message)
     """
     review = db.query(Review).filter(Review.id == review_id).first()
 
     if not review:
-        return None
+        return False, "Review not found"
 
     review.helpful_count += 1
     db.commit()
-    db.refresh(review)
 
-    return review
+    return True, "Helpful count incremented"
 
 
 def get_product_rating_summary(db: Session, product_id: UUID) -> dict:

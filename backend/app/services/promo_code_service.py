@@ -1,5 +1,5 @@
 """Promo code service for business logic."""
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import List, Optional, Tuple
 from uuid import UUID
@@ -223,7 +223,7 @@ def validate_promo_code(
         return False, "This promo code is inactive", None, promo_code
 
     # Check expiration
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if promo_code.valid_from and now < promo_code.valid_from:
         return False, "This promo code is not yet valid", None, promo_code
 
@@ -287,7 +287,7 @@ def is_expired(promo_code: PromoCode) -> bool:
     """Check if a promo code is expired."""
     if not promo_code.valid_until:
         return False
-    return datetime.utcnow() > promo_code.valid_until
+    return datetime.now(timezone.utc) > promo_code.valid_until
 
 
 def is_usage_exhausted(promo_code: PromoCode) -> bool:

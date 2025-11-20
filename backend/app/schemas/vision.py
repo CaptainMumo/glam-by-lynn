@@ -57,3 +57,44 @@ class VisionRegistrationResponse(BaseModel):
     created_at: datetime = Field(..., alias="createdAt")
 
     model_config = {"from_attributes": True, "populate_by_name": True}
+
+
+class VisionRegistrationListResponse(BaseModel):
+    """Response for paginated vision registration list."""
+
+    registrations: list[VisionRegistrationResponse]
+    total: int
+    skip: int
+    limit: int
+
+    model_config = {"populate_by_name": True}
+
+
+class ServiceInterest(BaseModel):
+    """Service interest statistics."""
+
+    service_name: str = Field(..., alias="serviceName")
+    count: int
+    percentage: float
+
+    model_config = {"populate_by_name": True}
+
+
+class LocationStats(BaseModel):
+    """Location distribution statistics."""
+
+    location: str
+    count: int
+
+    model_config = {"populate_by_name": True}
+
+
+class VisionAnalyticsResponse(BaseModel):
+    """Vision registration analytics response."""
+
+    total_registrations: int = Field(..., alias="totalRegistrations")
+    service_interests: list[ServiceInterest] = Field(..., alias="serviceInterests")
+    location_distribution: list[LocationStats] = Field(..., alias="locationDistribution")
+    registrations_by_month: dict[str, int] = Field(..., alias="registrationsByMonth")
+
+    model_config = {"populate_by_name": True}

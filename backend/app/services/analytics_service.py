@@ -282,7 +282,7 @@ def get_booking_analytics(
     )
 
     total_revenue = (
-        db.query(func.sum(Booking.total_price))
+        db.query(func.sum(Booking.total_amount))
         .filter(
             Booking.created_at >= start_date,
             Booking.created_at <= end_date,
@@ -356,7 +356,7 @@ def get_booking_analytics(
             )
 
             day_revenue = (
-                db.query(func.sum(Booking.total_price))
+                db.query(func.sum(Booking.total_amount))
                 .filter(
                     Booking.created_at >= day_start,
                     Booking.created_at <= day_end,
@@ -380,9 +380,9 @@ def get_booking_analytics(
             ServicePackage.id,
             ServicePackage.name,
             func.count(Booking.id).label("total_bookings"),
-            func.sum(Booking.total_price).label("total_revenue"),
+            func.sum(Booking.total_amount).label("total_revenue"),
         )
-        .join(Booking, Booking.service_package_id == ServicePackage.id)
+        .join(Booking, Booking.package_id == ServicePackage.id)
         .filter(
             Booking.created_at >= start_date,
             Booking.created_at <= end_date,

@@ -8,7 +8,7 @@ from fastapi import status
 from app.models.booking import Booking
 from app.models.order import Order, OrderItem
 from app.models.product import Product
-from app.models.service import ServicePackage
+from app.models.service import ServicePackage, TransportLocation
 from app.models.user import User
 
 
@@ -95,6 +95,20 @@ def sample_service(db_session):
 
 
 @pytest.fixture
+def sample_location(db_session):
+    """Create a sample transport location."""
+    location = TransportLocation(
+        location_name="Nairobi CBD",
+        transport_cost=Decimal("500.00"),
+        is_active=True,
+    )
+    db_session.add(location)
+    db_session.commit()
+    db_session.refresh(location)
+    return location
+
+
+@pytest.fixture
 def sample_orders(db_session, regular_user, sample_product):
     """Create sample orders for testing."""
     orders = []
@@ -115,6 +129,7 @@ def sample_orders(db_session, regular_user, sample_product):
     order_item1 = OrderItem(
         order_id=order1.id,
         product_id=sample_product.id,
+        product_title=sample_product.title,
         quantity=2,
         unit_price=Decimal("1500.00"),
         total_price=Decimal("3000.00"),
@@ -138,6 +153,7 @@ def sample_orders(db_session, regular_user, sample_product):
     order_item2 = OrderItem(
         order_id=order2.id,
         product_id=sample_product.id,
+        product_title=sample_product.title,
         quantity=1,
         unit_price=Decimal("1500.00"),
         total_price=Decimal("1500.00"),
@@ -150,16 +166,24 @@ def sample_orders(db_session, regular_user, sample_product):
 
 
 @pytest.fixture
-def sample_bookings(db_session, regular_user, sample_service):
+def sample_bookings(db_session, regular_user, sample_service, sample_location):
     """Create sample bookings for testing."""
+    from datetime import date, time
+
     bookings = []
 
     # Create a confirmed booking from 3 days ago
+    booking_date1 = date.today() + timedelta(days=7)
     booking1 = Booking(
+        booking_number="BK-TEST-001",
         user_id=regular_user.id,
-        service_package_id=sample_service.id,
-        scheduled_date=datetime.utcnow() + timedelta(days=7),
-        total_price=Decimal("5000.00"),
+        package_id=sample_service.id,
+        booking_date=booking_date1,
+        booking_time=time(10, 0),
+        location_id=sample_location.id,
+        subtotal=Decimal("5000.00"),
+        transport_cost=Decimal("500.00"),
+        total_amount=Decimal("5500.00"),
         status="confirmed",
         created_at=datetime.utcnow() - timedelta(days=3),
     )
@@ -167,11 +191,17 @@ def sample_bookings(db_session, regular_user, sample_service):
     bookings.append(booking1)
 
     # Create a pending booking from today
+    booking_date2 = date.today() + timedelta(days=10)
     booking2 = Booking(
+        booking_number="BK-TEST-002",
         user_id=regular_user.id,
-        service_package_id=sample_service.id,
-        scheduled_date=datetime.utcnow() + timedelta(days=10),
-        total_price=Decimal("5000.00"),
+        package_id=sample_service.id,
+        booking_date=booking_date2,
+        booking_time=time(14, 0),
+        location_id=sample_location.id,
+        subtotal=Decimal("5000.00"),
+        transport_cost=Decimal("500.00"),
+        total_amount=Decimal("5500.00"),
         status="pending",
         created_at=datetime.utcnow(),
     )

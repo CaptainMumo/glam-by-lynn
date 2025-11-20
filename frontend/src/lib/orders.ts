@@ -36,7 +36,6 @@ export async function getOrderById(orderId: string, token?: string): Promise<Ord
  * Get user's orders with pagination
  */
 export async function getUserOrders(
-  token: string,
   skip: number = 0,
   limit: number = 20
 ): Promise<{ orders: Order[]; total: number; skip: number; limit: number }> {
@@ -49,8 +48,8 @@ export async function getUserOrders(
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
+    credentials: "include",
     cache: "no-store",
   });
 

@@ -28,6 +28,7 @@ import {
   getStatusBadgeVariant,
 } from "@/lib/orders";
 import { useAuth, useRequireAuth } from "@/hooks/useAuth";
+import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import {
   Loader2,
   Package,
@@ -38,6 +39,8 @@ import {
   ChevronRight,
   Eye,
   ShoppingCart,
+  RotateCcw,
+  Truck,
 } from "lucide-react";
 
 export default function OrderHistoryPage() {
@@ -52,6 +55,8 @@ export default function OrderHistoryPage() {
   const [skip, setSkip] = useState(0);
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [reorderingOrderId, setReorderingOrderId] = useState<string | null>(null);
+  const [reorderSuccess, setReorderSuccess] = useState<string | null>(null);
 
   const limit = 10;
 
@@ -63,8 +68,7 @@ export default function OrderHistoryPage() {
 
       try {
         setLoading(true);
-        const token = "dummy-token"; // TODO: Get real token from session
-        const data = await getUserOrders(token, skip, limit);
+        const data = await getUserOrders(skip, limit);
         setOrders(data.orders);
         setTotal(data.total);
       } catch (err: any) {
@@ -81,6 +85,44 @@ export default function OrderHistoryPage() {
   const handlePageChange = (newSkip: number) => {
     setSkip(newSkip);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleReorder = async (order: Order) => {
+    if (!order.orderItems || order.orderItems.length === 0) {
+      setError("This order has no items to reorder");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    setReorderingOrderId(order.id);
+    setError(null);
+
+    try {
+      // Add each item from the order to the cart
+      for (const item of order.orderItems) {
+        if (item.productId) {
+          await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.ADD_ITEM}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              productId: item.productId,
+              productVariantId: item.productVariantId || undefined,
+              quantity: item.quantity,
+            }),
+          });
+        }
+      }
+
+      setReorderSuccess(order.id);
+      setTimeout(() => setReorderSuccess(null), 3000);
+    } catch (err: any) {
+      console.error("Failed to reorder:", err);
+      setError(err.message || "Failed to add items to cart");
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setReorderingOrderId(null);
+    }
   };
 
   const currentPage = Math.floor(skip / limit) + 1;
@@ -140,6 +182,22 @@ export default function OrderHistoryPage() {
             View and track all your product orders
           </p>
         </div>
+
+        {/* Success Message */}
+        {reorderSuccess && (
+          <div className="mb-6 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-green-800">
+            <ShoppingCart className="h-5 w-5" />
+            <span>Items added to cart successfully!</span>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && orders.length > 0 && (
+          <div className="mb-6 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-800">
+            <AlertCircle className="h-5 w-5" />
+            <span>{error}</span>
+          </div>
+        )}
 
         {/* Filters */}
         <Card className="mb-6">
@@ -231,6 +289,17 @@ export default function OrderHistoryPage() {
                         </div>
                       )}
 
+                      {/* Tracking Number */}
+                      {order.trackingNumber && (
+                        <div className="flex items-start gap-2">
+                          <Truck className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Tracking Number</p>
+                            <p className="font-mono text-sm font-medium">{order.trackingNumber}</p>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Order Items Count */}
                       {order.orderItems && order.orderItems.length > 0 && (
                         <div>
@@ -259,6 +328,31 @@ export default function OrderHistoryPage() {
                           <Eye className="mr-2 h-4 w-4" />
                           View Details
                         </Button>
+                        {order.orderItems && order.orderItems.length > 0 && (
+                          <Button
+                            onClick={() => handleReorder(order)}
+                            variant="secondary"
+                            size="sm"
+                            disabled={reorderingOrderId === order.id || reorderSuccess === order.id}
+                          >
+                            {reorderingOrderId === order.id ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Adding...
+                              </>
+                            ) : reorderSuccess === order.id ? (
+                              <>
+                                <ShoppingCart className="mr-2 h-4 w-4" />
+                                Added!
+                              </>
+                            ) : (
+                              <>
+                                <RotateCcw className="mr-2 h-4 w-4" />
+                                Reorder
+                              </>
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>

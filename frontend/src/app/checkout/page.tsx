@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { ShoppingCart, MapPin, Plus, Check, AlertCircle, Loader2 } from "lucide-react";
@@ -62,6 +64,7 @@ export default function CheckoutPage() {
   const [promoCode, setPromoCode] = useState("");
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [validatingPromo, setValidatingPromo] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Pre-fill user info
   useEffect(() => {
@@ -75,65 +78,71 @@ export default function CheckoutPage() {
   // Fetch cart and saved addresses
   useEffect(() => {
     async function fetchData() {
-      if (!authenticated) {
-        router.push("/auth/signin?redirect=/checkout");
-        return;
-      }
-
       try {
         setLoading(true);
 
-        // Fetch cart
-        const cartRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.GET}`, {
-          credentials: "include",
-        });
+        // For authenticated users, fetch cart from backend
+        if (authenticated) {
+          // Fetch cart
+          const cartRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.GET}`, {
+            credentials: "include",
+          });
 
-        if (cartRes.ok) {
-          const cartData = await cartRes.json();
-          setCartItems(cartData.items || []);
-
-          // If cart is empty, redirect to products
-          if (!cartData.items || cartData.items.length === 0) {
-            router.push("/products");
-            return;
+          if (cartRes.ok) {
+            const cartData = await cartRes.json();
+            setCartItems(cartData.items || []);
           }
-        }
 
-        // Fetch saved addresses from previous orders
-        const ordersRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ORDERS.LIST}?limit=5`, {
-          credentials: "include",
-        });
+          // Fetch saved addresses from previous orders
+          const ordersRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ORDERS.LIST}?limit=5`, {
+            credentials: "include",
+          });
 
-        if (ordersRes.ok) {
-          const ordersData = await ordersRes.json();
-          const addresses: SavedAddress[] = [];
-          const seen = new Set<string>();
+          if (ordersRes.ok) {
+            const ordersData = await ordersRes.json();
+            const addresses: SavedAddress[] = [];
+            const seen = new Set<string>();
 
-          for (const order of ordersData.items || []) {
-            if (
-              order.deliveryCounty &&
-              order.deliveryTown &&
-              order.deliveryAddress
-            ) {
-              const key = `${order.deliveryCounty}|${order.deliveryTown}|${order.deliveryAddress}`;
-              if (!seen.has(key)) {
-                seen.add(key);
-                addresses.push({
-                  id: order.id,
-                  deliveryCounty: order.deliveryCounty,
-                  deliveryTown: order.deliveryTown,
-                  deliveryAddress: order.deliveryAddress,
-                });
+            for (const order of ordersData.items || []) {
+              if (
+                order.deliveryCounty &&
+                order.deliveryTown &&
+                order.deliveryAddress
+              ) {
+                const key = `${order.deliveryCounty}|${order.deliveryTown}|${order.deliveryAddress}`;
+                if (!seen.has(key)) {
+                  seen.add(key);
+                  addresses.push({
+                    id: order.id,
+                    deliveryCounty: order.deliveryCounty,
+                    deliveryTown: order.deliveryTown,
+                    deliveryAddress: order.deliveryAddress,
+                  });
+                }
               }
             }
+
+            setSavedAddresses(addresses);
+
+            // If we have saved addresses, default to saved mode
+            if (addresses.length > 0) {
+              setAddressMode("saved");
+              setSelectedAddressId(addresses[0].id);
+            }
           }
-
-          setSavedAddresses(addresses);
-
-          // If we have saved addresses, default to saved mode
-          if (addresses.length > 0) {
-            setAddressMode("saved");
-            setSelectedAddressId(addresses[0].id);
+        } else {
+          // For guest users, load cart from localStorage
+          const guestCart = localStorage.getItem("guestCart");
+          if (guestCart) {
+            try {
+              const parsedCart = JSON.parse(guestCart);
+              setCartItems(parsedCart || []);
+            } catch (e) {
+              console.error("Error parsing guest cart:", e);
+              setCartItems([]);
+            }
+          } else {
+            setCartItems([]);
           }
         }
       } catch (err) {
@@ -145,7 +154,7 @@ export default function CheckoutPage() {
     }
 
     fetchData();
-  }, [authenticated, router]);
+  }, [authenticated]);
 
   const validatePromoCode = async () => {
     if (!promoCode.trim()) return;
@@ -188,6 +197,16 @@ export default function CheckoutPage() {
     // Validation
     if (!fullName.trim() || !email.trim() || !phone.trim()) {
       setError("Please fill in all contact information");
+      return;
+    }
+
+    if (!termsAccepted) {
+      setError("Please accept the terms and conditions to proceed");
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      setError("Your cart is empty. Please add items before checking out.");
       return;
     }
 
@@ -243,11 +262,15 @@ export default function CheckoutPage() {
         const order = await res.json();
         setSuccess(true);
 
-        // Clear cart
-        await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.CLEAR}`, {
-          method: "DELETE",
-          credentials: "include",
-        });
+        // Clear cart (backend for authenticated users, localStorage for guests)
+        if (authenticated) {
+          await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.CLEAR}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+        } else {
+          localStorage.removeItem("guestCart");
+        }
 
         // Redirect to order confirmation
         setTimeout(() => {
@@ -294,8 +317,22 @@ export default function CheckoutPage() {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Checkout</h1>
-          <p className="text-muted-foreground">Complete your order</p>
+          <p className="text-muted-foreground">
+            {authenticated ? "Complete your order" : "Checkout as guest"}
+          </p>
         </div>
+
+        {!authenticated && (
+          <div className="mb-6 rounded-md border border-blue-200 bg-blue-50 px-4 py-3">
+            <p className="text-sm text-blue-800">
+              <span className="font-medium">Guest Checkout:</span> You're checking out as a guest. Want to{" "}
+              <Link href="/auth/signin?redirect=/checkout" className="underline hover:no-underline">
+                sign in
+              </Link>{" "}
+              to access saved addresses and order history?
+            </p>
+          </div>
+        )}
 
         {error && (
           <div className="mb-6 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-800">
@@ -558,11 +595,30 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
+                  {/* Terms and Conditions */}
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="terms"
+                      checked={termsAccepted}
+                      onCheckedChange={(checked: boolean) => setTermsAccepted(checked)}
+                    />
+                    <Label htmlFor="terms" className="text-sm leading-tight cursor-pointer">
+                      I agree to the{" "}
+                      <Link href="/terms" className="text-secondary underline hover:no-underline">
+                        Terms of Service
+                      </Link>{" "}
+                      and{" "}
+                      <Link href="/privacy" className="text-secondary underline hover:no-underline">
+                        Privacy Policy
+                      </Link>
+                    </Label>
+                  </div>
+
                   <Button
                     type="submit"
                     className="w-full"
                     size="lg"
-                    disabled={submitting || success}
+                    disabled={submitting || success || !termsAccepted}
                   >
                     {submitting ? (
                       <>
@@ -580,6 +636,7 @@ export default function CheckoutPage() {
                   </Button>
 
                   <p className="text-xs text-center text-muted-foreground">
+                    {!authenticated && "You're checking out as a guest. "}
                     You'll be redirected to your order confirmation
                   </p>
                 </CardContent>

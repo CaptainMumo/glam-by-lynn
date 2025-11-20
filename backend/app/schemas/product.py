@@ -3,7 +3,7 @@ Product schemas for request/response validation
 """
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, List, Any
 from uuid import UUID
 from pydantic import BaseModel, Field, field_validator, computed_field
 import re
@@ -165,6 +165,35 @@ class ProductResponse(ProductBase):
     def is_low_stock(self) -> bool:
         """Check if product is low on stock"""
         return 0 < self.inventory_count <= self.low_stock_threshold
+
+    model_config = {"from_attributes": True}
+
+
+class RatingSummary(BaseModel):
+    """Summary of product ratings"""
+    average_rating: float = Field(..., description="Average rating (0-5)")
+    total_reviews: int = Field(..., description="Total number of reviews")
+    rating_distribution: dict[int, int] = Field(..., description="Distribution of ratings (1-5 stars)")
+
+
+class ProductDetailResponse(ProductResponse):
+    """
+    Enhanced product response with all relations for detail page.
+
+    Includes:
+    - All product info from ProductResponse
+    - Images and videos
+    - Variants
+    - Average rating and review count
+    - Related products (same category/brand)
+    - Recent approved reviews
+    """
+    images: List[Any] = Field(default_factory=list, description="Product images")
+    videos: List[Any] = Field(default_factory=list, description="Product videos")
+    variants: List[Any] = Field(default_factory=list, description="Product variants")
+    rating_summary: Optional[RatingSummary] = Field(None, description="Rating summary")
+    related_products: List[ProductResponse] = Field(default_factory=list, description="Related products")
+    reviews: List[Any] = Field(default_factory=list, description="Recent approved reviews")
 
     model_config = {"from_attributes": True}
 

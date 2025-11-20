@@ -359,3 +359,79 @@ def test_combined_filters(client: TestClient, test_products, test_brand, test_ca
     # Verify price ordering
     prices = [float(item["base_price"]) for item in data["items"]]
     assert prices == sorted(prices)
+
+
+def test_get_product_by_slug(client: TestClient, test_products):
+    """Test getting product detail by slug."""
+    product = test_products[0]  # Premium Lipstick
+
+    response = client.get(f"/products/slug/{product.slug}")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Verify product data
+    assert data["id"] == str(product.id)
+    assert data["slug"] == product.slug
+    assert data["title"] == product.title
+
+    # Verify all required fields are present
+    assert "images" in data
+    assert "videos" in data
+    assert "variants" in data
+    assert "rating_summary" in data
+    assert "related_products" in data
+    assert "reviews" in data
+
+    # Verify rating summary structure
+    assert "average_rating" in data["rating_summary"]
+    assert "total_reviews" in data["rating_summary"]
+    assert "rating_distribution" in data["rating_summary"]
+
+    # Verify lists are present (even if empty)
+    assert isinstance(data["images"], list)
+    assert isinstance(data["videos"], list)
+    assert isinstance(data["variants"], list)
+    assert isinstance(data["related_products"], list)
+    assert isinstance(data["reviews"], list)
+
+
+def test_get_product_by_slug_not_found(client: TestClient):
+    """Test getting product with non-existent slug."""
+    response = client.get("/products/slug/non-existent-slug")
+
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"].lower()
+
+
+def test_get_product_by_slug_inactive_returns_404(client: TestClient, test_products):
+    """Test that getting an inactive product by slug returns 404."""
+    inactive_product = test_products[4]  # Inactive product
+
+    response = client.get(f"/products/slug/{inactive_product.slug}")
+
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"].lower()
+
+
+def test_product_detail_includes_related_products(client: TestClient, test_products):
+    """Test that product detail includes related products."""
+    product = test_products[0]  # Premium Lipstick
+
+    response = client.get(f"/products/slug/{product.slug}")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Should have related products (same brand/category, excluding itself)
+    related = data["related_products"]
+    assert isinstance(related, list)
+
+    # Verify related products don't include the current product
+    related_ids = [p["id"] for p in related]
+    assert str(product.id) not in related_ids
+
+    # All related products should be active and in stock
+    for related_product in related:
+        assert related_product["is_active"] is True
+        assert related_product["inventory_count"] > 0

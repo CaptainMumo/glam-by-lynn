@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.product import ProductListResponse, ProductResponse
+from app.schemas.product import ProductListResponse, ProductResponse, ProductDetailResponse
 from app.services import product_service
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -99,6 +99,47 @@ async def list_featured_products(
     return ProductListResponse(
         items=products, total=total, page=page, page_size=page_size, total_pages=total_pages
     )
+
+
+@router.get("/slug/{slug}", response_model=ProductDetailResponse)
+async def get_product_by_slug(
+    slug: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Get comprehensive product details by slug (public).
+
+    Returns only active products with:
+    - All product information
+    - Images and videos
+    - Product variants
+    - Average rating and review count
+    - Related products (same category/brand)
+    - Recent approved reviews (10 most recent)
+
+    This endpoint is optimized for product detail pages.
+    """
+    detail = product_service.get_product_detail_by_slug(db, slug)
+
+    if not detail or not detail["product"].is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product with slug '{slug}' not found",
+        )
+
+    # Build response
+    product = detail["product"]
+    response_data = {
+        **product.__dict__,
+        "images": detail["images"],
+        "videos": detail["videos"],
+        "variants": detail["variants"],
+        "rating_summary": detail["rating_summary"],
+        "related_products": detail["related_products"],
+        "reviews": detail["reviews"],
+    }
+
+    return response_data
 
 
 @router.get("/{product_id}", response_model=ProductResponse)

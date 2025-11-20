@@ -52,6 +52,100 @@ def get_product_by_sku(db: Session, sku: str) -> Optional[Product]:
     return db.query(Product).filter(Product.sku == sku).first()
 
 
+def get_product_detail_by_slug(db: Session, slug: str) -> Optional[dict]:
+    """
+    Get comprehensive product detail by slug with all relations.
+
+    Returns a dict with:
+    - product: Product object with all basic relations
+    - images: List of product images
+    - videos: List of product videos
+    - variants: List of product variants
+    - rating_summary: Rating statistics
+    - related_products: Similar products (same category/brand)
+    - reviews: Recent approved reviews
+    """
+    from app.models.product import ProductImage, ProductVideo, ProductVariant
+    from app.models.content import Review
+
+    # Get product with basic relations (skip dynamic relationships)
+    product = db.query(Product).options(
+        joinedload(Product.brand),
+        joinedload(Product.category)
+    ).filter(Product.slug == slug).first()
+
+    if not product:
+        return None
+
+    # Load dynamic relationships separately
+    images = product.images.all() if product.images else []
+    videos = product.videos.all() if product.videos else []
+    variants = product.variants.all() if product.variants else []
+
+    # Get rating summary
+    reviews_query = db.query(Review).filter(
+        Review.product_id == product.id,
+        Review.is_approved == True
+    )
+    reviews_list = reviews_query.all()
+
+    total_reviews = len(reviews_list)
+    if total_reviews > 0:
+        total_rating = sum(review.rating for review in reviews_list)
+        average_rating = total_rating / total_reviews
+
+        # Calculate rating distribution
+        rating_distribution = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+        for review in reviews_list:
+            rating_distribution[review.rating] += 1
+
+        rating_summary = {
+            "average_rating": round(average_rating, 1),
+            "total_reviews": total_reviews,
+            "rating_distribution": rating_distribution
+        }
+    else:
+        rating_summary = {
+            "average_rating": 0.0,
+            "total_reviews": 0,
+            "rating_distribution": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+        }
+
+    # Get related products (same category or brand, excluding current product)
+    related_query = db.query(Product).options(
+        joinedload(Product.brand),
+        joinedload(Product.category)
+    ).filter(
+        Product.id != product.id,
+        Product.is_active == True,
+        Product.inventory_count > 0,
+        or_(
+            Product.category_id == product.category_id,
+            Product.brand_id == product.brand_id
+        )
+    ).limit(6)
+
+    related_products = related_query.all()
+
+    # Get recent approved reviews (limit to 10 most recent)
+    recent_reviews = db.query(Review).options(
+        joinedload(Review.user)
+    ).filter(
+        Review.product_id == product.id,
+        Review.is_approved == True
+    ).order_by(Review.created_at.desc()).limit(10).all()
+
+    return {
+        "product": product,
+        "images": images,
+        "videos": videos,
+        "variants": variants,
+        "rating_summary": rating_summary,
+        "related_products": related_products,
+        "reviews": recent_reviews
+    }
+
+
 def get_products(
     db: Session,
     skip: int = 0,

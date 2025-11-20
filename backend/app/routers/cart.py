@@ -39,12 +39,13 @@ async def get_cart(
         cart = cart_service.get_cart_with_items(db, current_user.id)
 
     # Convert cart_items to list for Pydantic
+    # cart_items is lazy="dynamic", but service loads items into _items_list
     cart_dict = {
         "id": cart.id,
         "user_id": cart.user_id,
         "created_at": cart.created_at,
         "updated_at": cart.updated_at,
-        "items": list(cart.cart_items.all()) if hasattr(cart.cart_items, 'all') else cart.cart_items,
+        "items": getattr(cart, '_items_list', []),
     }
 
     return CartResponse(**cart_dict)

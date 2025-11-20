@@ -42,15 +42,18 @@ def get_cart_with_items(db: Session, user_id: UUID) -> Optional[Cart]:
     Returns:
         Cart with items or None if cart doesn't exist
     """
-    cart = (
-        db.query(Cart)
-        .options(
-            joinedload(Cart.cart_items).joinedload(CartItem.product),
-            joinedload(Cart.cart_items).joinedload(CartItem.product_variant),
+    # Get cart (cart_items is lazy="dynamic" so it returns a query)
+    cart = db.query(Cart).filter(Cart.user_id == user_id).first()
+
+    if cart:
+        # Manually load items with product and variant details
+        # Since cart_items is dynamic, we need to query it separately
+        cart._items_list = (
+            cart.cart_items.options(
+                joinedload(CartItem.product),
+                joinedload(CartItem.product_variant),
+            ).all()
         )
-        .filter(Cart.user_id == user_id)
-        .first()
-    )
 
     return cart
 
@@ -84,8 +87,8 @@ def validate_stock(
         if not variant:
             return False, "Product variant not found"
 
-        if variant.stock_quantity < quantity:
-            return False, f"Insufficient stock. Only {variant.stock_quantity} available"
+        if variant.inventory_count < quantity:
+            return False, f"Insufficient stock. Only {variant.inventory_count} available"
     else:
         # Check product stock
         if product.inventory_count < quantity:

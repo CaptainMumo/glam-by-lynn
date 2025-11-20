@@ -40,9 +40,16 @@ class ProductVariantSummary(BaseModel):
     """Minimal variant info for cart item."""
 
     id: UUID
-    variant_name: str = Field(..., alias="variantName")
+    variant_type: str = Field(..., alias="variantType")
+    variant_value: str = Field(..., alias="variantValue")
     price_adjustment: Decimal = Field(..., alias="priceAdjustment")
-    stock_quantity: int = Field(..., alias="stockQuantity")
+    inventory_count: int = Field(..., alias="stockQuantity")  # Map inventory_count to stockQuantity
+
+    @computed_field(alias="variantName")
+    @property
+    def variant_name(self) -> str:
+        """Combine variant type and value into a single name."""
+        return f"{self.variant_value}"
 
     model_config = {"from_attributes": True, "populate_by_name": True}
 
@@ -60,7 +67,7 @@ class CartItemResponse(BaseModel):
     product: ProductSummary
     product_variant: Optional[ProductVariantSummary] = Field(None, alias="productVariant")
 
-    @computed_field
+    @computed_field(alias="unitPrice")
     @property
     def unit_price(self) -> Decimal:
         """Calculate unit price (base price + variant adjustment if applicable)."""
@@ -69,13 +76,13 @@ class CartItemResponse(BaseModel):
             price += self.product_variant.price_adjustment
         return price
 
-    @computed_field
+    @computed_field(alias="subtotal")
     @property
     def subtotal(self) -> Decimal:
         """Calculate item subtotal (unit price × quantity)."""
         return self.unit_price * Decimal(str(self.quantity))
 
-    @computed_field
+    @computed_field(alias="isAvailable")
     @property
     def is_available(self) -> bool:
         """Check if item is available for purchase."""
@@ -85,7 +92,7 @@ class CartItemResponse(BaseModel):
 
         # Check stock availability
         if self.product_variant:
-            return self.product_variant.stock_quantity >= self.quantity
+            return self.product_variant.inventory_count >= self.quantity
         else:
             return self.product.inventory_count >= self.quantity
 
@@ -101,19 +108,19 @@ class CartResponse(BaseModel):
     created_at: datetime = Field(..., alias="createdAt")
     updated_at: datetime = Field(..., alias="updatedAt")
 
-    @computed_field
+    @computed_field(alias="totalItems")
     @property
     def total_items(self) -> int:
         """Total number of items in cart."""
         return sum(item.quantity for item in self.items)
 
-    @computed_field
+    @computed_field(alias="totalAmount")
     @property
     def total_amount(self) -> Decimal:
         """Total cart amount (sum of all item subtotals)."""
         return sum(item.subtotal for item in self.items)
 
-    @computed_field
+    @computed_field(alias="hasUnavailableItems")
     @property
     def has_unavailable_items(self) -> bool:
         """Check if cart contains any unavailable items."""

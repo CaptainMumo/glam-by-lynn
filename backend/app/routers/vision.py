@@ -66,8 +66,23 @@ async def register_vision_interest(
             detail=str(e),
         )
 
-    # TODO: Send confirmation email (Issue #62)
-    # This would typically trigger an email to the registered email address
-    # confirming their interest registration
+    # Send confirmation email
+    from app.services.email_service import email_service
+
+    interests = []
+    if registration.interested_in_salon:
+        interests.append("Full-service Salon")
+    if registration.interested_in_barbershop:
+        interests.append("Barbershop Services")
+    if registration.interested_in_spa:
+        interests.append("Spa Treatments")
+    if registration.interested_in_mobile_van:
+        interests.append("Mobile Beauty Van")
+
+    email_service.send_vision_registration_confirmation(
+        to_email=registration.email,
+        full_name=registration.full_name,
+        interests=interests,
+    )
 
     return registration

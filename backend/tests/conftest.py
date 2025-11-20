@@ -128,3 +128,15 @@ def admin_headers(admin_token):
 def user_headers(user_token):
     """Create authorization headers for regular user"""
     return {"Authorization": f"Bearer {user_token}"}
+
+
+@pytest.fixture
+def auth_headers():
+    """Create a callable that generates auth headers for any user"""
+    from app.core.security import create_access_token
+
+    def _make_headers(user):
+        token = create_access_token(data={"sub": str(user.id)})
+        return {"Authorization": f"Bearer {token}"}
+
+    return _make_headers

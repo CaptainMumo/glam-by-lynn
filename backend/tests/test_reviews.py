@@ -15,8 +15,10 @@ def test_user(db_session: Session):
     """Create a test user."""
     user = User(
         email="testuser@example.com",
-        name="Test User",
+        google_id="test_user_123",
+        full_name="Test User",
         is_admin=False,
+        is_active=True,
     )
     db_session.add(user)
     db_session.commit()
@@ -52,10 +54,15 @@ def test_product(db_session: Session):
 @pytest.fixture
 def test_order_with_product(db_session: Session, test_user, test_product):
     """Create a completed order with the test product."""
+    from decimal import Decimal
+
     order = Order(
+        order_number="ORD-TEST-REV-001",
         user_id=test_user.id,
-        total_amount=50.00,
-        status="completed",
+        subtotal=Decimal("50.00"),
+        total_amount=Decimal("50.00"),
+        status="delivered",  # Use "delivered" for verified purchases
+        payment_confirmed=True,
     )
     db_session.add(order)
     db_session.commit()
@@ -63,9 +70,10 @@ def test_order_with_product(db_session: Session, test_user, test_product):
     order_item = OrderItem(
         order_id=order.id,
         product_id=test_product.id,
+        product_title=test_product.title,
         quantity=1,
-        unit_price=50.00,
-        total_price=50.00,
+        unit_price=Decimal("50.00"),
+        total_price=Decimal("50.00"),
     )
     db_session.add(order_item)
     db_session.commit()
@@ -134,8 +142,8 @@ def test_create_review_without_purchase(client: TestClient, db_session: Session,
 def test_list_product_reviews_approved_only(client: TestClient, db_session: Session, test_product):
     """Test that only approved reviews are returned."""
     # Create approved and unapproved reviews
-    user1 = User(email="user1@test.com", name="User 1")
-    user2 = User(email="user2@test.com", name="User 2")
+    user1 = User(email="user1@test.com", google_id="user1_123", full_name="User 1", is_active=True)
+    user2 = User(email="user2@test.com", google_id="user2_123", full_name="User 2", is_active=True)
     db_session.add_all([user1, user2])
     db_session.commit()
 
@@ -149,7 +157,7 @@ def test_list_product_reviews_approved_only(client: TestClient, db_session: Sess
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 1  # Only approved review
-    assert len(data["items"]) == 1
+    assert len(data["reviews"]) == 1
 
 
 def test_get_my_review(client: TestClient, db_session: Session, test_user, test_product, auth_headers):
@@ -182,7 +190,7 @@ def test_get_my_review_not_found(client: TestClient, test_user, test_product, au
 
 def test_mark_review_helpful(client: TestClient, db_session: Session, test_product):
     """Test marking a review as helpful."""
-    user = User(email="user@test.com", name="User")
+    user = User(email="user@test.com", google_id="user_123", full_name="User", is_active=True)
     db_session.add(user)
     db_session.commit()
 

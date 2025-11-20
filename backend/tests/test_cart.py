@@ -192,7 +192,7 @@ def test_get_cart_unauthorized(client):
     """Test that unauthenticated users cannot access cart."""
     response = client.get("/api/cart")
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_add_item_to_cart_success(client, user_token, sample_products):
@@ -321,7 +321,7 @@ def test_add_item_unauthorized(client, sample_products):
         json={"productId": str(product.id), "quantity": 1},
     )
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_get_cart_with_items(client, user_token, sample_products):
@@ -544,7 +544,7 @@ def test_clear_cart_unauthorized(client):
     """Test clearing cart without authentication fails."""
     response = client.delete("/api/cart")
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_cart_availability_check(client, user_token, sample_products):

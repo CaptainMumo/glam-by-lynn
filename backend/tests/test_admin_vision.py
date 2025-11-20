@@ -118,7 +118,7 @@ def sample_registrations(db_session):
 def test_get_vision_registrations_unauthorized(client):
     """Test that unauthenticated requests are rejected."""
     response = client.get("/api/admin/vision/registrations")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_get_vision_registrations_non_admin(client, regular_token):
@@ -201,7 +201,7 @@ def test_get_vision_registrations_filter_by_location(client, admin_token, sample
 def test_get_vision_analytics_unauthorized(client):
     """Test that unauthenticated requests are rejected."""
     response = client.get("/api/admin/vision/analytics")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_get_vision_analytics_non_admin(client, regular_token):
@@ -271,7 +271,7 @@ def test_get_vision_analytics_empty(client, admin_token):
 def test_export_vision_registrations_unauthorized(client):
     """Test that unauthenticated requests are rejected."""
     response = client.get("/api/admin/vision/export")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_export_vision_registrations_non_admin(client, regular_token):

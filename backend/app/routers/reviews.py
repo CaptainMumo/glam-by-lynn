@@ -38,18 +38,18 @@ async def create_product_review(
     - Created review with is_approved=False (pending admin approval)
     - is_verified_purchase=True if user has purchased the product
     """
-    try:
-        review = review_service.create_review(
-            db=db,
-            product_id=product_id,
-            user_id=current_user.id,
-            rating=review_data.rating,
-            review_text=review_data.review_text,
-        )
-    except ValueError as e:
+    success, message, review = review_service.create_review(
+        db=db,
+        product_id=product_id,
+        user_id=current_user.id,
+        rating=review_data.rating,
+        review_text=review_data.review_text,
+    )
+
+    if not success:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail=message,
         )
 
     return review
@@ -98,7 +98,7 @@ async def list_product_reviews(
     total_pages = math.ceil(total / page_size) if total > 0 else 1
 
     return ReviewListResponse(
-        items=reviews,
+        reviews=reviews,
         total=total,
         page=page,
         pageSize=page_size,

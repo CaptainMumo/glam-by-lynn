@@ -100,7 +100,7 @@ class TestBookingCancellationAPI:
 
         # Try to cancel without authentication
         response = client.put(f"/api/bookings/{booking.id}/cancel")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_cancel_other_user_booking(self, client, db_session, admin_user, regular_user, user_headers):
         """Test that users cannot cancel other users' bookings"""

@@ -170,7 +170,7 @@ class TestJWTTokens:
     def test_get_current_user_without_token(self, client):
         """Test /me endpoint without token"""
         response = client.get("/api/auth/me")
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_get_current_user_with_invalid_token(self, client):
         """Test /me endpoint with invalid token"""
@@ -387,7 +387,7 @@ class TestLogout:
     def test_logout_without_token(self, client):
         """Test logout without token"""
         response = client.post("/api/auth/logout")
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 class TestSecurityValidation:
@@ -419,9 +419,9 @@ class TestSecurityValidation:
     def test_missing_authorization_header(self, client):
         """Test endpoint requiring auth without Authorization header"""
         response = client.get("/api/auth/me")
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_malformed_authorization_header(self, client):
         """Test with malformed Authorization header"""
         response = client.get("/api/auth/me", headers={"Authorization": "NotBearer token"})
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED

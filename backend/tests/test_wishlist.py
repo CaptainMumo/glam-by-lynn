@@ -149,7 +149,7 @@ def test_get_wishlist_unauthorized(client):
     """Test that unauthenticated users cannot access wishlist."""
     response = client.get("/api/wishlist")
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_add_product_to_wishlist(client, user_token, sample_products):
@@ -268,7 +268,7 @@ def test_add_to_wishlist_unauthorized(client, sample_products):
         json={"productId": str(product.id)},
     )
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_remove_from_wishlist(client, user_token, sample_products):
@@ -316,7 +316,7 @@ def test_remove_from_wishlist_unauthorized(client, sample_products):
 
     response = client.delete(f"/api/wishlist/{product.id}")
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_check_product_in_wishlist(client, user_token, sample_products):
@@ -355,7 +355,7 @@ def test_check_wishlist_unauthorized(client, sample_products):
 
     response = client.get(f"/api/wishlist/check/{product.id}")
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_wishlist_items_newest_first(client, user_token, sample_products):

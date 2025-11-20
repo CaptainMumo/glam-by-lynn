@@ -73,7 +73,7 @@ class TestBookingHistoryAPI:
     def test_list_bookings_no_auth(self, client):
         """Test that listing bookings without authentication fails"""
         response = client.get("/api/bookings")
-        assert response.status_code == 403  # Unauthorized
+        assert response.status_code == 401  # Unauthorized
 
     def test_list_bookings_with_pagination(self, client, db_session, admin_user, admin_headers):
         """Test booking list pagination"""
@@ -394,7 +394,7 @@ class TestBookingHistoryAPI:
 
         # Try without authentication
         response = client.get(f"/api/bookings/{booking.id}")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_get_booking_other_user(self, client, db_session, admin_user, regular_user, user_headers):
         """Test that users cannot access other users' bookings"""

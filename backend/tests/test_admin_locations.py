@@ -127,7 +127,7 @@ def test_list_locations_without_auth(client, sample_locations):
     response = client.get("/api/admin/locations")
 
     # FastAPI HTTPBearer returns 403 when no credentials provided
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_list_locations_as_regular_user(client, regular_token, sample_locations):

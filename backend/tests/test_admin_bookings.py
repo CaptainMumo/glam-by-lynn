@@ -266,7 +266,7 @@ def test_list_bookings_without_auth(client, sample_bookings):
     """Test that listing bookings requires authentication."""
     response = client.get("/api/admin/bookings")
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_list_bookings_as_regular_user(client, regular_token, sample_bookings):

@@ -63,7 +63,7 @@ def create_review(
     user_id: UUID,
     rating: int,
     review_text: Optional[str] = None,
-) -> Review:
+) -> Tuple[bool, str, Optional[Review]]:
     """
     Create a new review.
 
@@ -75,15 +75,19 @@ def create_review(
         review_text: Review text (optional)
 
     Returns:
-        Created review
-
-    Raises:
-        ValueError: If user already reviewed this product
+        Tuple of (success, message, review)
     """
+    from app.models.product import Product
+
+    # Check if product exists
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        return False, "Product not found", None
+
     # Check if user already reviewed this product
     existing = get_user_review_for_product(db, user_id, product_id)
     if existing:
-        raise ValueError("You have already reviewed this product")
+        return False, "You have already reviewed this product", None
 
     # Check for verified purchase
     is_verified, order_id = check_verified_purchase(db, user_id, product_id)
@@ -104,7 +108,7 @@ def create_review(
     db.commit()
     db.refresh(review)
 
-    return review
+    return True, "Review created successfully", review
 
 
 def get_product_reviews(
@@ -161,7 +165,7 @@ def update_review(
     user_id: UUID,
     rating: Optional[int] = None,
     review_text: Optional[str] = None,
-) -> Optional[Review]:
+) -> Tuple[bool, str, Optional[Review]]:
     """
     Update a review (user can only update their own review).
 
@@ -173,18 +177,15 @@ def update_review(
         review_text: Optional new review text
 
     Returns:
-        Updated review or None if not found/unauthorized
-
-    Raises:
-        ValueError: If user doesn't own the review
+        Tuple of (success, message, review)
     """
     review = db.query(Review).filter(Review.id == review_id).first()
 
     if not review:
-        return None
+        return False, "Review not found", None
 
     if review.user_id != user_id:
-        raise ValueError("You can only update your own reviews")
+        return False, "You can only update your own reviews", None
 
     # Update fields
     if rating is not None:
@@ -200,7 +201,7 @@ def update_review(
     db.commit()
     db.refresh(review)
 
-    return review
+    return True, "Review updated successfully", review
 
 
 def update_review_approval(
@@ -235,7 +236,7 @@ def update_review_approval(
     return review
 
 
-def delete_review(db: Session, review_id: UUID, user_id: UUID) -> bool:
+def delete_review(db: Session, review_id: UUID, user_id: UUID) -> Tuple[bool, str]:
     """
     Delete a review (user can only delete their own review).
 
@@ -245,28 +246,83 @@ def delete_review(db: Session, review_id: UUID, user_id: UUID) -> bool:
         user_id: User ID (must match review user_id)
 
     Returns:
-        True if deleted, False if not found
-
-    Raises:
-        ValueError: If user doesn't own the review
+        Tuple of (success, message)
     """
     review = db.query(Review).filter(Review.id == review_id).first()
 
     if not review:
-        return False
+        return False, "Review not found"
 
     if review.user_id != user_id:
-        raise ValueError("You can only delete your own reviews")
+        return False, "You can only delete your own reviews"
 
     db.delete(review)
     db.commit()
 
-    return True
+    return True, "Review deleted successfully"
+
+
+def admin_update_review(
+    db: Session,
+    review_id: UUID,
+    is_approved: Optional[bool] = None,
+    admin_reply: Optional[str] = None,
+) -> Tuple[bool, str, Optional[Review]]:
+    """
+    Admin update review approval status and add reply.
+
+    Args:
+        db: Database session
+        review_id: Review ID
+        is_approved: Optional approval status
+        admin_reply: Optional admin reply
+
+    Returns:
+        Tuple of (success, message, review)
+    """
+    review = db.query(Review).filter(Review.id == review_id).first()
+
+    if not review:
+        return False, "Review not found", None
+
+    if is_approved is not None:
+        review.is_approved = is_approved
+
+    if admin_reply is not None:
+        review.admin_reply = admin_reply
+        review.admin_reply_at = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(review)
+
+    return True, "Review updated successfully", review
+
+
+def increment_helpful_count(db: Session, review_id: UUID) -> Tuple[bool, str]:
+    """
+    Increment helpful count for a review.
+
+    Args:
+        db: Database session
+        review_id: Review ID
+
+    Returns:
+        Tuple of (success, message)
+    """
+    review = db.query(Review).filter(Review.id == review_id).first()
+
+    if not review:
+        return False, "Review not found"
+
+    review.helpful_count += 1
+    db.commit()
+
+    return True, "Review marked as helpful"
 
 
 def mark_review_helpful(db: Session, review_id: UUID) -> Optional[Review]:
     """
-    Increment helpful count for a review.
+    Increment helpful count for a review (deprecated - use increment_helpful_count).
 
     Args:
         db: Database session

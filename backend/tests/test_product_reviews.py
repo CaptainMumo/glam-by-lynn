@@ -215,7 +215,7 @@ def test_create_review_unauthenticated(client, sample_product):
         json=review_data,
     )
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_create_review_invalid_product(client, user_token):

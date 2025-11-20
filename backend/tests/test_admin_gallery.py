@@ -194,7 +194,7 @@ def test_list_gallery_posts_ordering(client, admin_token, sample_gallery_posts):
 def test_list_gallery_posts_unauthorized(client, sample_gallery_posts):
     """Test that listing gallery posts requires authentication."""
     response = client.get("/api/admin/gallery")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_list_gallery_posts_non_admin(client, regular_token, sample_gallery_posts):
@@ -244,7 +244,7 @@ def test_get_gallery_post_unauthorized(client, sample_gallery_posts):
     """Test that getting a gallery post requires authentication."""
     post = sample_gallery_posts[0]
     response = client.get(f"/api/admin/gallery/{post.id}")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_get_gallery_post_non_admin(client, regular_token, sample_gallery_posts):
@@ -333,7 +333,7 @@ def test_create_gallery_post_unauthorized(client):
         "mediaUrl": "https://example.com/image.jpg",
     }
     response = client.post("/api/admin/gallery", json=data)
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_create_gallery_post_non_admin(client, regular_token):
@@ -399,7 +399,7 @@ def test_update_gallery_post_unauthorized(client, sample_gallery_posts):
     post = sample_gallery_posts[0]
     update_data = {"caption": "Updated"}
     response = client.put(f"/api/admin/gallery/{post.id}", json=update_data)
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_update_gallery_post_non_admin(client, regular_token, sample_gallery_posts):
@@ -441,7 +441,7 @@ def test_delete_gallery_post_unauthorized(client, sample_gallery_posts):
     """Test that deleting a gallery post requires authentication."""
     post = sample_gallery_posts[0]
     response = client.delete(f"/api/admin/gallery/{post.id}")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_delete_gallery_post_non_admin(client, regular_token, sample_gallery_posts):

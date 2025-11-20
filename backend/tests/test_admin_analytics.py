@@ -249,7 +249,7 @@ def test_get_overview_analytics_no_auth(client):
     """Test that unauthenticated requests are rejected."""
     response = client.get("/api/admin/analytics/overview")
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_get_sales_analytics_success(client, admin_token, sample_orders):

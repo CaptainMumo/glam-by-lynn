@@ -173,7 +173,7 @@ def test_get_user_orders_unauthorized(client):
     """Test that unauthenticated requests are rejected."""
     response = client.get("/api/orders")
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_get_user_orders_pagination(client, user_token, user_order):

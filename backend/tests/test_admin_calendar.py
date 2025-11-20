@@ -147,7 +147,7 @@ def test_get_calendar_without_auth(client, sample_blocked_slots):
 
     response = client.get(f"/api/admin/calendar?startDate={today}&endDate={end_date}")
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_get_calendar_as_regular_user(client, regular_token, sample_blocked_slots):

@@ -127,7 +127,7 @@ def sample_activity_logs(db_session, super_admin, content_editor):
 def test_get_activity_logs_unauthorized(client):
     """Test that unauthenticated requests are rejected."""
     response = client.get("/api/admin/activity-logs")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_get_activity_logs_non_admin(client, regular_token):

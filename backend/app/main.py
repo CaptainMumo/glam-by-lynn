@@ -14,7 +14,7 @@ from app.core.middleware import (
 )
 
 # Import routers
-from app.routers import auth, services, bookings, gallery, testimonials, products as public_products, promo_codes as public_promo_codes, reviews as public_reviews, cart
+from app.routers import auth, services, bookings, gallery, testimonials, products as public_products, promo_codes as public_promo_codes, reviews as public_reviews, cart, wishlist
 from app.api.routes import brands, categories, products, product_images, product_variants, service_packages, orders
 from app.api.routes.admin import locations as admin_locations, calendar as admin_calendar, bookings as admin_bookings, gallery as admin_gallery, users as admin_users, testimonials as admin_testimonials, promo_codes as admin_promo_codes, analytics as admin_analytics
 
@@ -102,6 +102,7 @@ app.include_router(public_products.router)  # Public products API
 app.include_router(public_promo_codes.router, prefix="/api")  # Public promo codes API
 app.include_router(public_reviews.router, prefix="/api")  # Public reviews API
 app.include_router(cart.router, prefix="/api")  # Shopping cart API
+app.include_router(wishlist.router, prefix="/api")  # Wishlist API
 app.include_router(brands.router, prefix="/api")
 app.include_router(categories.router, prefix="/api")
 app.include_router(products.router, prefix="/api")

@@ -48,9 +48,11 @@ export async function getServicePackageById(id: string): Promise<ServicePackage>
 /**
  * Format price for display
  */
-export function formatPrice(price?: number): string {
+export function formatPrice(price?: number | string): string {
   if (!price) return "Contact for pricing";
-  return `KSh ${price.toLocaleString()}`;
+  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+  if (isNaN(numPrice)) return "Contact for pricing";
+  return `KSh ${numPrice.toLocaleString()}`;
 }
 
 /**
@@ -73,17 +75,17 @@ export function getPackageTypeName(packageType: string): string {
 export function getPricingDescription(pkg: ServicePackage): string {
   const prices = [];
 
-  if (pkg.baseBridePrice) {
-    prices.push(`Bride: ${formatPrice(pkg.baseBridePrice)}`);
+  if (pkg.base_bride_price) {
+    prices.push(`Bride: ${formatPrice(pkg.base_bride_price)}`);
   }
-  if (pkg.baseMaidPrice) {
-    prices.push(`Maid: ${formatPrice(pkg.baseMaidPrice)}`);
+  if (pkg.base_maid_price) {
+    prices.push(`Maid: ${formatPrice(pkg.base_maid_price)}`);
   }
-  if (pkg.baseMotherPrice) {
-    prices.push(`Mother: ${formatPrice(pkg.baseMotherPrice)}`);
+  if (pkg.base_mother_price) {
+    prices.push(`Mother: ${formatPrice(pkg.base_mother_price)}`);
   }
-  if (pkg.baseOtherPrice) {
-    prices.push(`Other: ${formatPrice(pkg.baseOtherPrice)}`);
+  if (pkg.base_other_price) {
+    prices.push(`Other: ${formatPrice(pkg.base_other_price)}`);
   }
 
   if (prices.length === 0) {
@@ -100,9 +102,9 @@ export function getPackageFeatures(pkg: ServicePackage): string[] {
   const features = [];
 
   // Duration
-  if (pkg.durationMinutes) {
-    const hours = Math.floor(pkg.durationMinutes / 60);
-    const minutes = pkg.durationMinutes % 60;
+  if (pkg.duration_minutes) {
+    const hours = Math.floor(pkg.duration_minutes / 60);
+    const minutes = pkg.duration_minutes % 60;
     if (hours > 0 && minutes > 0) {
       features.push(`${hours}h ${minutes}min session`);
     } else if (hours > 0) {
@@ -113,35 +115,35 @@ export function getPackageFeatures(pkg: ServicePackage): string[] {
   }
 
   // Facial inclusion
-  if (pkg.includesFacial) {
+  if (pkg.includes_facial) {
     features.push("Professional facial included");
   }
 
   // Group size limits
-  if (pkg.minMaids && pkg.maxMaids) {
-    features.push(`${pkg.minMaids}-${pkg.maxMaids} maids/bridesmaids`);
-  } else if (pkg.maxMaids) {
-    features.push(`Up to ${pkg.maxMaids} maids/bridesmaids`);
+  if (pkg.min_maids && pkg.max_maids) {
+    features.push(`${pkg.min_maids}-${pkg.max_maids} maids/bridesmaids`);
+  } else if (pkg.max_maids) {
+    features.push(`Up to ${pkg.max_maids} maids/bridesmaids`);
   }
 
   // Package-specific features
-  if (pkg.packageType === "bridal_large" || pkg.packageType === "bridal_small") {
+  if (pkg.package_type === "bridal_large" || pkg.package_type === "bridal_small") {
     features.push("Perfect for weddings");
     features.push("Long-lasting makeup formula");
     features.push("Touch-up kit included");
   }
 
-  if (pkg.packageType === "bride_only") {
+  if (pkg.package_type === "bride_only") {
     features.push("Personalized bridal consultation");
     features.push("Trial session available");
   }
 
-  if (pkg.packageType === "regular") {
+  if (pkg.package_type === "regular") {
     features.push("Suitable for any occasion");
     features.push("Professional makeup application");
   }
 
-  if (pkg.packageType === "classes") {
+  if (pkg.package_type === "classes") {
     features.push("Hands-on training");
     features.push("Product recommendations");
     features.push("Certificate of completion");

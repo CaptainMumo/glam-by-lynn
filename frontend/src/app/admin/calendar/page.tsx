@@ -63,7 +63,7 @@ export default function AdminCalendarPage() {
   }, [currentDate, view, status, session]);
 
   const loadCalendarData = async () => {
-    if (!session?.user?.accessToken) return;
+    if (!session?.accessToken) return;
 
     setLoading(true);
     setError(null);
@@ -74,7 +74,7 @@ export default function AdminCalendarPage() {
         startDate,
         endDate,
         false,
-        session.user.accessToken
+        session.accessToken
       );
       setBlockedSlots(data.items);
     } catch (err) {
@@ -136,7 +136,7 @@ export default function AdminCalendarPage() {
   };
 
   const handleBlockSlot = async () => {
-    if (!selectedDateTime || !session?.user?.accessToken) return;
+    if (!selectedDateTime || !session?.accessToken) return;
 
     setLoading(true);
     setError(null);
@@ -148,7 +148,7 @@ export default function AdminCalendarPage() {
           timeSlot: selectedDateTime.timeSlot,
           reason: blockReason || undefined,
         },
-        session.user.accessToken
+        session.accessToken
       );
       setShowBlockModal(false);
       setSelectedDateTime(null);
@@ -163,13 +163,13 @@ export default function AdminCalendarPage() {
   };
 
   const handleUnblockSlot = async (slotId: string) => {
-    if (!session?.user?.accessToken) return;
+    if (!session?.accessToken) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      await unblockTimeSlot(slotId, session.user.accessToken);
+      await unblockTimeSlot(slotId, session.accessToken);
       setSelectedSlot(null);
       await loadCalendarData();
     } catch (err) {

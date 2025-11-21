@@ -351,7 +351,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                   </Button>
 
                   {/* Image Navigation */}
-                  {product.images.length > 1 && (
+                  {product.images && product.images.length > 1 && (
                     <>
                       <Button
                         variant="secondary"
@@ -373,7 +373,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                   )}
 
                   {/* Image Counter */}
-                  {product.images.length > 1 && (
+                  {product.images && product.images.length > 1 && (
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-sm text-white">
                       {selectedImageIndex + 1} / {product.images.length}
                     </div>
@@ -387,7 +387,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
             </div>
 
             {/* Thumbnail Gallery */}
-            {hasImages && product.images.length > 1 && (
+            {hasImages && product.images && product.images.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
                 {product.images.map((img, index) => (
                   <button

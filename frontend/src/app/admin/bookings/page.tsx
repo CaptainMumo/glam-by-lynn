@@ -57,7 +57,7 @@ export default function AdminBookingsPage() {
   }, [status, session, page, statusFilter, startDate, endDate]);
 
   const loadBookings = async () => {
-    if (!session?.user?.accessToken) return;
+    if (!session?.accessToken) return;
 
     setLoading(true);
     setError(null);
@@ -71,7 +71,7 @@ export default function AdminBookingsPage() {
           startDate: startDate || undefined,
           endDate: endDate || undefined,
         },
-        session.user.accessToken
+        session.accessToken
       );
 
       setBookings(data.items);
@@ -86,7 +86,7 @@ export default function AdminBookingsPage() {
   };
 
   const handleDepositToggle = async (booking: Booking) => {
-    if (!session?.user?.accessToken) return;
+    if (!session?.accessToken) return;
 
     try {
       await updateBookingDeposit(
@@ -95,7 +95,7 @@ export default function AdminBookingsPage() {
           depositPaid: !booking.depositPaid,
           adminNotes: `Deposit ${!booking.depositPaid ? "marked as paid" : "marked as unpaid"}`,
         },
-        session.user.accessToken
+        session.accessToken
       );
       await loadBookings();
     } catch (err: any) {
@@ -104,7 +104,7 @@ export default function AdminBookingsPage() {
   };
 
   const handleStatusChange = async (booking: Booking, newStatus: string) => {
-    if (!session?.user?.accessToken) return;
+    if (!session?.accessToken) return;
 
     try {
       await updateBookingStatus(
@@ -113,7 +113,7 @@ export default function AdminBookingsPage() {
           status: newStatus as any,
           adminNotes: `Status changed to ${newStatus}`,
         },
-        session.user.accessToken
+        session.accessToken
       );
       await loadBookings();
     } catch (err: any) {
@@ -122,11 +122,11 @@ export default function AdminBookingsPage() {
   };
 
   const handleCancelBooking = async (booking: Booking) => {
-    if (!session?.user?.accessToken) return;
+    if (!session?.accessToken) return;
     if (!confirm(`Cancel booking ${booking.bookingNumber}?`)) return;
 
     try {
-      await cancelAdminBooking(booking.id, "Admin cancelled", session.user.accessToken);
+      await cancelAdminBooking(booking.id, "Admin cancelled", session.accessToken);
       await loadBookings();
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to cancel booking");
@@ -134,7 +134,7 @@ export default function AdminBookingsPage() {
   };
 
   const handleExportCSV = async () => {
-    if (!session?.user?.accessToken) return;
+    if (!session?.accessToken) return;
 
     try {
       const blob = await exportBookingsCSV(
@@ -143,7 +143,7 @@ export default function AdminBookingsPage() {
           startDate: startDate || undefined,
           endDate: endDate || undefined,
         },
-        session.user.accessToken
+        session.accessToken
       );
 
       const url = window.URL.createObjectURL(blob);

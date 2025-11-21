@@ -158,7 +158,7 @@ export default function BookingConfirmationPage() {
                     <p className="text-sm text-muted-foreground">Location</p>
                     <p className="flex items-center gap-2 font-medium">
                       <MapPin className="h-4 w-4" />
-                      {booking.location.locationName}
+                      {booking.location.location_name}
                     </p>
                   </div>
                 )}

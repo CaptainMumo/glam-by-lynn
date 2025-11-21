@@ -268,7 +268,7 @@ export default function BookingHistoryPage() {
                           <MapPin className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <p className="text-sm text-muted-foreground">Location</p>
-                            <p className="font-medium">{booking.location.locationName}</p>
+                            <p className="font-medium">{booking.location.location_name}</p>
                           </div>
                         </div>
                       )}

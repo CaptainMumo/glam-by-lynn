@@ -92,7 +92,7 @@ export default function ServicesPage() {
               {packages.map((pkg) => {
                 const features = getPackageFeatures(pkg);
                 const pricingDescription = getPricingDescription(pkg);
-                const isPopular = pkg.packageType === "bridal_large" || pkg.packageType === "bride_only";
+                const isPopular = pkg.package_type === "bridal_large" || pkg.package_type === "bride_only";
 
                 return (
                   <Card

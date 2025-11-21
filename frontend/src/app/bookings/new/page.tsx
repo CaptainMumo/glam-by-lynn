@@ -161,7 +161,7 @@ function BookingFormContent() {
         }),
       };
 
-      const token = session?.user?.accessToken; // Get real JWT token from session
+      const token = session?.accessToken; // Get real JWT token from session
       const booking = await createBooking(bookingData, token);
 
       // Redirect to confirmation page

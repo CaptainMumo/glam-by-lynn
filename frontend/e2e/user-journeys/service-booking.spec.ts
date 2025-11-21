@@ -49,7 +49,7 @@ test.describe('Service Booking Journey', () => {
       ).first();
 
       // Get service name for later verification
-      const serviceName = await firstService.locator('h2, h3').textContent();
+      const serviceName = await firstService.locator('[data-slot="card-title"]').textContent();
 
       // Click on "Book Now" or "View Details" button
       const bookButton = firstService.locator('button:has-text("Book")').or(

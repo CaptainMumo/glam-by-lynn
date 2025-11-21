@@ -1,4 +1,4 @@
-import { test as base, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { NavigationHelpers } from '../helpers/navigation';
 
 /**

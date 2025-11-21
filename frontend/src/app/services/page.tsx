@@ -98,7 +98,8 @@ export default function ServicesPage() {
                   <Card
                     key={pkg.id}
                     id={pkg.id}
-                    className={isPopular ? "border-secondary shadow-lg" : ""}
+                    data-testid="service-card"
+                    className={isPopular ? "service-card package-card border-secondary shadow-lg" : "service-card package-card"}
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between">

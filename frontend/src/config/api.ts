@@ -20,14 +20,14 @@ export const API_ENDPOINTS = {
   },
   // Brands
   BRANDS: {
-    LIST: "/brands",
-    DETAIL: (id: string) => `/brands/${id}`,
+    LIST: "/api/brands",
+    DETAIL: (id: string) => `/api/brands/${id}`,
   },
   // Categories
   CATEGORIES: {
-    LIST: "/categories",
-    DETAIL: (id: string) => `/categories/${id}`,
-    HIERARCHY: "/categories/hierarchy",
+    LIST: "/api/categories",
+    DETAIL: (id: string) => `/api/categories/${id}`,
+    HIERARCHY: "/api/categories/hierarchy",
   },
   // Services
   SERVICES: {

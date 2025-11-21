@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
@@ -42,8 +44,8 @@ export default function NotFound() {
                 Go to Homepage
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" onClick={() => window.history.back()}>
-              <button type="button">
+            <Button asChild variant="outline" size="lg">
+              <button type="button" onClick={() => window.history.back()}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Go Back
               </button>

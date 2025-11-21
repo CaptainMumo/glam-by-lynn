@@ -480,7 +480,8 @@ export default function ProductsPage() {
                 {products.map((product) => (
                   <Card
                     key={product.id}
-                    className={viewMode === "list" ? "flex" : "flex flex-col"}
+                    data-testid="product-card"
+                    className={viewMode === "list" ? "product-card flex" : "product-card flex flex-col"}
                   >
                     <CardHeader className={viewMode === "list" ? "flex-1" : ""}>
                       <div className="mb-2 flex items-start justify-between">
